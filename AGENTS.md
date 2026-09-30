@@ -8,6 +8,9 @@ and broker-verified GitHub proof before automatically marking work done.
 
 - Python dependencies and commands: uv, with a committed `uv.lock`.
 - Authoritative queue: GitHub state branch, updated by trusted Actions workflows.
+- Each project coordinates in its target repository; the dashboard aggregates
+  repositories. State writes use a dedicated broker App protected by branch
+  rules and a restricted Actions environment.
 - Website: static GitHub Pages dashboard.
 - Optional local fanout or future discussion service: FastAPI and Uvicorn.
 - Typed state models and any future discussion database: SQLModel.
@@ -42,7 +45,8 @@ AGENTS.md rules when installing the marked Hivemind workflow section. Keep
 agent handoff hints committed inside the governed GitHub repository. Do not
 store credentials in documentation, hints, or source control.
 
-The canonical proposal is `docs/design.md`. It is awaiting human review;
-implementation files are drafts. Round one uses GitHub, with no hosted database.
+The canonical proposal is `docs/design.md`. The per-project architecture is
+approved; remaining design decisions await human review and implementation files
+are drafts. Round one uses GitHub, with no hosted database.
 A small AWS discussion service is a possible later extension, not a current
 deployment requirement. Keep proposal statements distinct from verified features.

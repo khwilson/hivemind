@@ -1,10 +1,12 @@
 # GitHub-backed coordination
 
 Hivemind coordinates independently operated agents through GitHub. Each project
-names exactly one target repository. A central hub repository holds authorization
-and task state; target repositories hold implementation code, pull requests,
-repository instructions, and committed handoff hints. A static dashboard reads
-GitHub. No persistent Hivemind API server or database is required.
+names exactly one target repository, which also hosts its coordination state,
+requests, authorization, broker workflow, code, pull requests, repository
+instructions, and committed handoff hints. A static dashboard aggregates selected
+repositories through GitHub. No persistent Hivemind API or database is required.
+This per-project arrangement is the approved architecture; the
+[canonical design](design.md) specifies its branch rules and broker credentials.
 
 This document records the intended architecture. The companion
 [Discussions design](discussions.md) describes agent communication and proposed
@@ -17,9 +19,9 @@ their success have not been independently established here.
 
 | Location | Contents | Writer |
 | --- | --- | --- |
-| Hub default branch | Broker, project registry, public keys, permissions, CI policies | Trusted maintainers |
-| Hub `hivemind-state` branch | Queue, tasks, claims, proofs, receipts, dashboard index | Trusted broker |
-| Hub Issues | Signed agent requests and permitted human requests | Individual GitHub users |
+| Project default branch | Broker, local registry, public keys, permissions, CI policies | Contributors through protected PRs; trusted owners review coordination changes |
+| Project `hivemind-state` branch | Queue, tasks, claims, proofs, receipts, dashboard index | Trusted broker App |
+| Project Issues | Signed agent requests and permitted human requests | Individual GitHub users |
 | GitHub Discussions | Questions, decisions, blockers, milestones, handoffs | Humans and their agents |
 | Target default and task branches | Code, `AGENTS.md`, `.hivemind/` configuration and hints | Target contributors |
 | GitHub Pages | HTML, compiled Tailwind CSS, JavaScript | Deployment workflow |
@@ -52,10 +54,12 @@ Splitting files does **not** eliminate contention on the shared branch ref. It
 also does not make independent agents safe to merge arbitrary claims. A single
 broker and validated optimistic updates enforce the coordination invariants.
 
-Central storage avoids a broker installation and privileged write credential in
-every target repository. The tradeoff is shared hub visibility: task descriptions
-about a private target are public if stored in a public hub. Use a private hub for
-private coordination, or separate hubs where access policies differ.
+Every project installs its own broker workflow, registry, rulesets, and protected
+App credential. This adds setup work but separates authorization, visibility,
+contention, and recovery. The dashboard combines derived indexes without owning
+state or granting access. Task metadata has the target repository's visibility;
+never bake private metadata into public dashboard assets. Cross-project
+dependencies and atomic transitions are outside round one.
 
 ## Requests and authorization
 
@@ -65,7 +69,7 @@ permitted projects, and capabilities. Several agents may use the same human's
 GitHub identity while retaining separate agent keys. Git author names and email
 addresses are descriptive metadata, not authentication.
 
-A signed request binds the protocol version, hub repository, target project,
+A signed request binds the protocol version, coordinating target repository, project,
 action, complete arguments, request UUID, timestamps, and key identifier. The
 broker validates a strict schema and canonical signature encoding, verifies the
 signature, and compares the request identity with the issue author's GitHub ID.
@@ -78,11 +82,31 @@ Explicitly configured maintainers may issue unsigned `add`, `prioritize`, and
 limited to those capabilities and configured projects. It does not let an issue
 author edit authorization, claim an agent identity, or fabricate completion.
 
-Agents require access to create hub issues, not hub contents or workflow write
-access. Target code permissions are separate. Anyone able to replace the hub
-broker or registry belongs to the trusted administrative boundary. Branch
-protection, rulesets, and credentials must reflect that boundary; signatures
-cannot compensate for an agent being able to replace its verifier.
+Agents may write ordinary work branches and create request Issues. They cannot
+administer settings, bypass coordination rules, or merge coordination changes
+without trusted review. Protect broker code, dependencies, workflow definitions,
+registry, CI policy, and CODEOWNERS itself on the default branch.
+
+Restrict state branch creation and updates to the dedicated broker App. Keep
+force-push and deletion prohibitions in separate rulesets with no App bypass;
+bootstrap the orphan branch before enabling creation restrictions. Do not give
+the generic Actions identity or agent accounts a state bypass. The broker App
+has no default-branch bypass or administration permission.
+[Rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+
+Store the App private key in a coordination environment permitting only the exact
+trusted default branch, excluding tags. Mint short-lived installation tokens
+scoped to this repository. Branch protection does not stop other branches from
+running workflows, and read-only default GITHUB_TOKEN permissions are not a hard
+ceiling. Environment restrictions protect the privileged credential; trusted
+broker code must also avoid executing agent-controlled code.
+[Environment restrictions](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments),
+[Workflow permissions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository)
+
+A separate App identity and private key per project avoids sharing one credential
+across independently administered projects. Anyone able to replace the broker,
+registry, or environment restrictions belongs to the trusted administrative
+boundary. Agents must use credentials without those privileges.
 
 ## Broker and atomic transitions
 
@@ -93,7 +117,7 @@ there. [Workflow events](https://docs.github.com/en/actions/reference/workflows-
 
 Each run reconciles the durable request inbox rather than assuming that one
 workflow run corresponds to one request. Workflow concurrency uses a common
-group with `cancel-in-progress: false`. Pending runs can still be replaced under
+group local to the project repository with `cancel-in-progress: false`. Pending runs can still be replaced under
 the default concurrency behavior, so reconciliation is required for correctness.
 [Workflow concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
 
@@ -161,23 +185,23 @@ arbitrary acceptance prose, merge the PR, or prevent later edits to an open PR.
 Projects whose dependents require integrated code must configure a completion
 policy that verifies integration before releasing those dependents.
 
-The hub workflow token writes hub state. Its permissions are restricted to the
-repository containing the workflow; an optional read-only `GH_PROOF_TOKEN`
-provides access to private targets' pull requests and checks. Keep credentials in
-GitHub secrets and local credential storage, never in tasks or hints.
-[GitHub Actions token scope](https://docs.github.com/en/enterprise-cloud%40latest/actions/concepts/security/github_token)
+The protected broker App token writes state in its project repository. Evidence
+is read from the same repository; no cross-repository proof token is required.
+Keep credentials in restricted environment secrets and local credential storage,
+never in tasks or hints. Ordinary CI does not receive the broker credential.
 
 ## Dashboard, installation, and recovery
 
 GitHub Actions builds and deploys a static Pages shell. The browser fetches the
-hub index using GitHub's API. A private workspace token remains in the browser
+indexes of selected project repositories using GitHub's API. A private access
+token remains in the browser
 session and is not embedded in the deployment. Render task and Discussion text
 as untrusted content. Pages hosts static HTML, CSS, and JavaScript; runtime state
 comes from GitHub. [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 
 Installing into a target checkout preserves existing `AGENTS.md` rules and
 updates only Hivemind's marked section. Committed `.hivemind/` configuration
-points to the hub and project; committed hints preserve findings and handoffs
+identifies the coordinating target repository and project; committed hints preserve findings and handoffs
 alongside the code. Installation does not implicitly grant repository access.
 
 History supports inspection and recovery, but a blind reset can resurrect old

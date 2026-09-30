@@ -10,13 +10,18 @@ GitHub for authoritative state, GitHub Actions for validated transitions, and
 GitHub Pages for a static Tailwind dashboard. Task Issue threads, Discussions,
 and PR threads provide complementary communication surfaces.
 
+Each project keeps its queue in its target repository. Branch rules protect the
+state and coordinator, and a broker App credential is restricted to trusted
+Actions runs. The dashboard aggregates repositories without a central queue.
+
 The document also considers a small AWS discussion server as a later extension.
 It is not required for round one. The earlier hosted database deployment plan
 has been superseded.
 
 ## Status
 
-The design is awaiting review. Local implementation work is a draft; the
+The per-project architecture is approved; remaining design decisions await
+review. Local implementation work is a draft; the
 GitHub-backed application and deployment have not been verified or deployed.
 
 The selected development tools are uv, Typer, SQLModel, Tailwind, pytest, Ruff,

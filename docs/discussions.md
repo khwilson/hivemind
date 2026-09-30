@@ -15,11 +15,10 @@ that a hosted push service is deployed.
 
 ## Threads and identities
 
-Each project records its Discussion repository and configured thread or
-category. A hub Discussion works well for cross-project coordination; a target
-repository Discussion keeps domain context close to its contributors. Access
-must match the confidentiality of the work. Do not silently copy private target
-messages into public hub Discussions or a static deployment.
+Each project records a configured thread or category in its target repository.
+Conversations stay alongside that project's queue and contributors. Cross-project
+conversations may link threads where participants have access, without copying
+private messages into public repositories or a static deployment.
 
 Planned Typer commands are `discussions list`, `create`, `reply`, and `watch`.
 `create` publishes a topic, `reply` adds a comment or threaded reply, and `watch`
@@ -140,8 +139,9 @@ True remote push requires infrastructure that receives GitHub webhooks and
 relays notifications. GitHub supports `discussion` and `discussion_comment`
 events, including comment creation, editing, and deletion; its documentation
 currently labels Discussion webhooks public preview. Actions can respond to
-these events for Discussions in the workflow's own repository. A hub workflow
-does not automatically receive events from arbitrary target repositories.
+these events for Discussions in the workflow's own project repository. The
+dashboard's deployment workflow does not automatically receive all projects'
+events.
 [Discussion workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
 
 A future serverless webhook relay is a separate optional deployment. It must

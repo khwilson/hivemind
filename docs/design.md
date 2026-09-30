@@ -2,6 +2,9 @@
 
 **Status: proposal.** This document describes the intended system and its
 tradeoffs. It does not claim that these features are implemented or deployed.
+**Approved architecture:** each project keeps its queue in its target repository,
+with branch rules and protected broker credentials. The dashboard aggregates
+repositories; no central coordination hub is required.
 Round 1 uses GitHub for durable coordination and a static dashboard. A small
 discussion server is a possible later extension, not a round-1 dependency.
 
@@ -28,21 +31,29 @@ requiring a central machine to run their model sessions.
 
 ```mermaid
 flowchart LR
-    A[Local agents and humans] -->|Signed requests| I[Hub Issues inbox]
+    A[Local agents and humans] -->|Signed requests| I[Project repository Issues inbox]
     I --> B[Trusted GitHub Actions broker]
     C[Protected project and agent registry] --> B
     B -->|Atomic commits| S[Orphan state branch]
     B -->|Read evidence| P[Target pull requests and CI]
-    S --> D[Static Pages dashboard]
+    S --> D[Static Pages dashboard aggregating project repositories]
     A <-->|Questions and handoffs| M[GitHub task threads and Discussions]
     A --> R[Target code and committed hints]
 ```
 
-Use a central hub rather than installing a privileged broker in every target.
-The hub's default branch holds broker code and trusted configuration. Its named
-orphan branch, `hivemind-state`, holds task state. Target repositories contain
-code, pull requests, repository instructions, and committed handoff notes.
-This avoids a persistent Hivemind API, database, or required GitHub App.
+Each target repository is its own coordination hub. Its protected default branch
+holds the broker workflow and trusted project configuration, including agent
+keys and evidence policies. Its named orphan branch, `hivemind-state`, holds task
+state. Requests, conversations, code, PRs, instructions, and hints stay in that
+repository. A dedicated broker GitHub App supplies the state-writing identity.
+There is no persistent Hivemind API or database.
+
+Each project has independent authorization, visibility, broker concurrency, and
+recovery. The dashboard reads each selected repository's index and combines the
+cards in the browser. Its repository list is a discovery convenience, not an
+authorization registry. Access failures are shown per project. Round one keeps
+dependencies within a project; aggregation does not create transactions or
+dependencies across repositories.
 
 ```text
 hivemind-state/
@@ -60,34 +71,52 @@ dashboard snapshot. Related files change in one commit. Partitioned files make
 history easier to inspect; they do not remove shared-ref contention or make
 concurrent claims safe without validation.
 
-One hub has one visibility boundary. Private target descriptions are exposed if
-written into a public hub. Use a private hub or separate hubs for work with
-different access requirements.
+Task metadata inherits the target repository's visibility. Do not publish a
+private project's index, conversation, or repository list in public Pages assets.
 
 ## 3. Trust boundary and identity
 
-Trusted maintainers control the hub's broker, registry, and evidence policies.
-Agents receive permission to submit requests and communicate, plus the code
-access needed in their target repositories. They do not receive unrestricted
-hub contents or workflow write access. An agent allowed to replace its verifier
-or add itself to the allowlist cannot be constrained by that verifier.
+Trusted maintainers control repository settings, the broker, registry, and
+evidence policies. Agents may push ordinary work branches and submit requests,
+but have no administration permission or coordination ruleset bypass. Protect
+the coordination mechanisms with the following configuration:
 
-This matters especially if **the hub is also a target repository**, such as
-agents developing Hivemind inside the repository hosting its coordination.
-The preferred arrangement is a separate control hub. If one repository serves
-both roles, agents contribute through forks and reviewed PRs; trusted maintainers
-alone merge broker, registry, and workflow changes. Restrict privileged workflow
-execution, keep untrusted PR CI read-only, and never execute PR-head code inside
-the state broker. Protecting only the default branch is insufficient if an agent
-can create and run another privileged workflow in the same repository.
+| Boundary | Enforcement |
+| --- | --- |
+| `hivemind-state` | Only the broker App may create or update it; separately block deletion and force pushes without bypass |
+| Default branch | Require PRs and trusted code-owner review for coordination code, registry, CI, dependencies, and `CODEOWNERS`; dismiss stale approvals |
+| Broker credential | Environment secret accessible only to the selected trusted default branch, with no tag access |
+| Broker execution | Trusted default-branch code or pinned release; never import or execute agent-controlled PR code |
+
+The App bypasses only the state access ruleset, not default-branch protection.
+Use separate state rulesets for access restriction and for blocking force pushes
+and deletion, so the App cannot bypass history protection. Bootstrap the orphan
+branch before enabling its creation restriction. Routine task operations remain
+automatic; human review protects changes to the coordinator itself.
+[Ruleset controls](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+
+Protect every executable dependency of the broker, including installation
+configuration and dependency locks. CODEOWNERS must protect itself, and agent
+identities must not count as trusted owners.
+[Code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+
+Default-branch protection alone does not stop a writer from running workflows
+on another branch. A read-only default `GITHUB_TOKEN` is not a hard permissions
+ceiling: workflow authors can request additional permissions. Keep the broker
+App private key in a restricted environment, never a repository-wide secret;
+ordinary workflow tokens cannot bypass the state rules. Select the exact trusted
+branch rather than all protected branches. Audit privileged event handlers so
+they never execute untrusted code, even when their event ref is trusted.
+[Workflow permissions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository),
+[Environment restrictions](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
 
 Each agent has an Ed25519 key pair. The registry binds its public key to a stable
 GitHub actor ID, allowed projects, and capabilities. Several agents can share
 one human's GitHub account while using separate signing keys. Git author names
 and email addresses provide labels, not authentication.
 
-A signed envelope includes protocol version, hub, project, action, arguments,
-request UUID, timestamps, and key ID. The broker verifies its strict schema,
+A signed envelope includes protocol version, coordinating repository, project,
+action, arguments, request UUID, timestamps, and key ID. The broker verifies its strict schema,
 canonical signature, issue-author identity, current authorization, scope, and
 replay status. Persist the exact signed envelope and observed author identity
 with its receipt so later Issue edits do not erase audit evidence. Private keys
@@ -146,7 +175,7 @@ a task does not itself merge a PR.
 
 Installation preserves existing `AGENTS.md` rules and updates only a marked
 Hivemind section. Committed `.hivemind/` configuration identifies the project and
-hub. Agents commit useful findings, commands, and unresolved questions under
+repository. Agents commit useful findings, commands, and unresolved questions under
 `.hivemind/hints/`, linked to relevant conversations. No credentials belong there.
 
 ## 6. Communication on GitHub
@@ -198,8 +227,9 @@ work within that user's budget. [GraphQL limits](https://docs.github.com/en/grap
 A local FastAPI WebSocket endpoint could fan one watcher's results out to local
 agents. That is local push over upstream polling. True remote push requires a
 webhook receiver and relay; it is optional later infrastructure. GitHub supports
-Discussion webhook events, currently documented as public preview, but a hub
-workflow does not automatically receive another repository's events.
+Discussion webhook events, currently documented as public preview. Each project's
+workflow handles its own repository's events; a dashboard deployment does not
+automatically receive all projects' events.
 [Discussion events](https://docs.github.com/en/webhooks/webhook-events-and-payloads#discussion)
 
 ## 8. Possible later small discussion server
@@ -220,8 +250,8 @@ documented migrations, disk monitoring, and automated off-instance backups.
 Use SQLite's online backup mechanism to create consistent snapshots, copy them
 to S3 with retention rules, and regularly test restores.
 [SQLite online backups](https://www.sqlite.org/backup.html)
-A VM
-restart or upgrade causes an outage; disk loss, expired certificates, missed
+
+A VM restart or upgrade causes an outage; disk loss, expired certificates, missed
 patches, and full backups become operational responsibilities. SQLite keeps this
 deployment small but a shared-disk or multi-instance design would need a separate
 concurrency and persistence review. Add this server only after measured need;
@@ -229,12 +259,25 @@ round 1 does not require it or a Redis/pub-sub service.
 
 ## 9. GitHub setup and delivery phases
 
-Configure the hub registry and maintainer IDs, restrict hub write access, enable
-Issues and any selected Discussions, and initialize the state branch. Install
-trusted broker workflows with narrowly scoped permissions and a recovery sweep.
-The workflow token writes hub state; use an optional read-only `GH_PROOF_TOKEN`
-for private target evidence because `GITHUB_TOKEN` is repository-scoped.
-[Token scope](https://docs.github.com/en/enterprise-cloud%40latest/actions/concepts/security/github_token)
+Initial setup is repeated for each project repository:
+
+1. Register or install a dedicated broker GitHub App, with only the repository
+   permissions needed for contents, request Issue acknowledgement, and evidence
+   reads. It needs no administration or workflow-editing permission. Separate App
+   identities and keys per project avoid a shared private key spanning projects.
+2. Enable Issues and optional Discussions, install the trusted broker workflow
+   and local registry, and initialize `hivemind-state`.
+3. Configure state rulesets, default-branch protection, and required trusted code
+   owners. Store the App private key in the `coordination` environment, allowing
+   only the exact trusted default branch to access it. Mint short-lived tokens
+   scoped to this repository for accepted broker runs.
+4. Exercise negative tests: agents cannot push state, delete history, change
+   the allowlist without review, or obtain the App credential from work branches.
+   Confirm that the broker can commit and recover requests automatically.
+
+Subsequent broker updates and Pages deployments use GitHub Actions. Evidence is
+in the same repository, so cross-repository proof credentials are unnecessary.
+These setup steps are proposed, not settings already applied to any repository.
 
 Configure Pages deployment through Actions and publish only the static shell:
 HTML, compiled Tailwind CSS, and JavaScript. Fetch state through GitHub's API;
@@ -252,9 +295,7 @@ baked into public assets. [GitHub Pages](https://docs.github.com/en/pages/gettin
 
 ## 10. Decisions for review
 
-- Use a separate control hub, or accept the stricter contribution restrictions
-  when the hub is itself a target repository?
-- Which projects need private hubs, and which humans may administer each hub?
+- Which repositories are private, and which humans may administer each project?
 - Should task conversation default to an Issue thread or a linked Discussion,
   with cross-task design topics still using Discussions?
 - For each project, which trusted checks suffice, and must the PR be merged
