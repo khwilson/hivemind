@@ -45,6 +45,25 @@ AGENTS.md rules when installing the marked Hivemind workflow section. Keep
 agent handoff hints committed inside the governed GitHub repository. Do not
 store credentials in documentation, hints, or source control.
 
+## Product requirements
+
+Follow `docs/design.md` and `docs/deliverables.md`. Ship a standalone uv-managed
+Typer tool with bundled, versioned instructions, reusable `SKILL.md` files, and
+viewer assets. Preserve local customizations during setup and upgrades; diagnosis
+must check actual permissions rather than only generated configuration.
+
+Queue edits use broker-validated requests with expected task/queue revisions.
+Preserve conflicting drafts, explicitly invalidate claims for material edits,
+and keep completed evidence bound to the revision it proved. Unsigned human
+add/edit/prioritize/cancel/note capabilities require configured GitHub identities
+and verified request provenance; they never confer fabricated agent proof.
+
+Standard-work rules are protected inputs. Mathematics inspection tasks record
+source and rule provenance, distinguish proof from conjecture, and use ordinary
+evidence checks. Generate them idempotently with atomic receipts and cursors;
+bound recursion and retain cancellation receipts. The privileged broker selects
+tasks but does not run models or execute agent-controlled project code.
+
 The canonical proposal is `docs/design.md`. The per-project architecture is
 approved; remaining design decisions await human review and implementation files
 are drafts. Round one uses GitHub, with no hosted database.

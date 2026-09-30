@@ -1,0 +1,42 @@
+name: Hivemind broker
+on:
+  issues:
+    types: [opened, edited, reopened]
+  push:
+    branches: [@@BRANCH_JSON@@]
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hivemind-broker
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: coordination
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        id: broker-token
+        with:
+          client-id: ${{ vars.HIVEMIND_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HIVEMIND_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: read
+          permission-checks: read
+      - name: Reconcile requests and standard work
+        run: uvx --from "@@SOURCE@@" hivemind broker run --config .hivemind/config.json
+        env:
+          GH_TOKEN: ${{ steps.broker-token.outputs.token }}
+          HIVEMIND_CONFIG_SHA: ${{ github.sha }}

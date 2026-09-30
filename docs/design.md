@@ -7,6 +7,8 @@ with branch rules and protected broker credentials. The dashboard aggregates
 repositories; no central coordination hub is required.
 Round 1 uses GitHub for durable coordination and a static dashboard. A small
 discussion server is a possible later extension, not a round-1 dependency.
+The [deliverables and standard-work requirements](deliverables.md) define the
+setup CLI, bundled agent instructions and skills, queue editor, and broker rules.
 
 The design incorporates the user-provided four-page `hivemind.pdf`, titled
 “Git-Backed AI Agent Coordination Design,” and targets roughly five people, each
@@ -18,9 +20,9 @@ tools and their success are background suggestions, not verified conclusions.
 
 A human registers a project tied to a GitHub repository, authorizes agents, and
 adds tasks with acceptance criteria, priorities, dependencies, and subtasks.
-The dashboard shows project cards and lets the human inspect work, ownership,
-conversation, and evidence. Each agent reads repository instructions and shared
-hints, claims ready work, renews its lease, collaborates through GitHub, submits
+The dashboard shows project cards and lets the human add, edit, prioritize, and
+inspect work, ownership, conversation, and evidence. Each agent reads repository
+instructions and shared hints, claims ready work, renews its lease, collaborates through GitHub, submits
 proof, and repeats. Agents may create follow-up tasks within their authorization.
 
 Completion is automatic only when the configured evidence policy passes.
@@ -121,8 +123,9 @@ canonical signature, issue-author identity, current authorization, scope, and
 replay status. Persist the exact signed envelope and observed author identity
 with its receipt so later Issue edits do not erase audit evidence. Private keys
 remain local. Explicitly configured maintainers may
-submit unsigned `add`, `prioritize`, and `note` requests under their authenticated
-GitHub IDs; this exception does not permit fabricated claims or completion.
+submit unsigned `add`, `edit`, `prioritize`, `cancel`, and `note` requests under
+their authenticated GitHub IDs and configured capabilities; this exception does
+not permit fabricated claims or completion.
 Reject edited unsigned requests unless their provenance can be verified. Agents
 using a maintainer's GitHub credential inherit that credential's capabilities;
 separate agent credentials are needed where that distinction must be enforced.
@@ -157,6 +160,15 @@ expiry invalidate active authority. Recheck these conditions after network calls
 and on every optimistic retry. Use explicit repair transitions for recovery;
 blindly resetting history could resurrect leases and erase replay protection.
 
+Task edits include an expected task revision; reordering includes an expected
+queue revision. The CLI and viewer use the same broker-validated requests.
+Conflicts preserve the user's draft and expose the newer state for reconciliation.
+Material changes to active acceptance criteria or dependencies require explicit
+claim invalidation. Reordering does not preempt claims. Proof remains tied to the
+task revision it established; a changed completed objective becomes a new task.
+Cancellation invalidates the lease and leaves dependents blocked until an
+explicit graph edit resolves them. Every result retains an audit receipt.
+
 ## 5. Proof acceptance and repository context
 
 An agent submits a full commit SHA, PR number, and explanation of acceptance
@@ -177,6 +189,29 @@ Installation preserves existing `AGENTS.md` rules and updates only a marked
 Hivemind section. Committed `.hivemind/` configuration identifies the project and
 repository. Agents commit useful findings, commands, and unresolved questions under
 `.hivemind/hints/`, linked to relevant conversations. No credentials belong there.
+
+The standalone uv-managed CLI bundles versioned `AGENTS.md` and reusable
+`SKILL.md` templates, viewer assets, and a skill catalog. The mathematics profile
+includes the agent work loop, mathematics review and generalization, evidence,
+and handoff skills. Templates identify capabilities but do not grant permissions.
+Upgrades compare managed-file hashes, preserve local instructions, and propose
+diffs for customized files instead of overwriting them.
+
+Protected `standard-work.json` rules let the broker enqueue routine inspection
+from default-branch pushes, merged PRs, and verified completions. The broker
+selects work deterministically; authorized agents perform the reasoning. A
+mathematics rule asks whether assumptions can be weakened, results generalized,
+or lemmas reused, requiring a committed report distinguishing proof, conjecture,
+counterexamples, and unchecked intuition. Finding no useful extension is valid.
+Passing report-format checks does not establish mathematical truth.
+
+Generated tasks record exact source SHAs, rule/configuration/skill versions, and
+evidence requirements. Canonical source identities deduplicate merge and push
+notifications; generation receipts, cursors, and tasks commit atomically. Ignore
+state and review-only changes, bound recursion and task counts, and retain
+receipts for cancelled tasks so sweeps do not recreate them. Rule changes do not
+silently backfill history. Humans inspect or dismiss ordinary generated tasks
+in the editor; changing or pausing generation rules uses reviewed configuration.
 
 ## 6. Communication on GitHub
 
@@ -261,6 +296,15 @@ round 1 does not require it or a Redis/pub-sub service.
 
 Initial setup is repeated for each project repository:
 
+The planned installable Typer CLI replaces the earlier local-server entry point
+and supports `uv tool install` and `uvx` distribution. `init` prepares a concrete
+versioned installation, `setup` applies authorized repository settings, `doctor`
+checks the actual permission boundary, and `upgrade` proposes safe updates.
+Existing repositories receive setup PRs for protected files; authorized
+maintainers can bootstrap empty repositories directly. Repeated setup must not
+duplicate files, keys, or standard tasks. Missing App or permission steps remain
+explicitly incomplete, even if local files have been generated.
+
 1. Register or install a dedicated broker GitHub App, with only the repository
    permissions needed for contents, request Issue acknowledgement, and evidence
    reads. It needs no administration or workflow-editing permission. Separate App
@@ -284,13 +328,16 @@ HTML, compiled Tailwind CSS, and JavaScript. Fetch state through GitHub's API;
 private access tokens stay in the browser session and private state is never
 baked into public assets. [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 
-1. **Core:** registry, signed requests, atomic claims, graph validation, receipts,
-   and repository instruction installation; test races, replay, and revocation.
-2. **Useful workflow:** evidence verification, task cards, priorities, subtasks,
-   Issue/Discussion links, committed hints, and recovery procedures.
-3. **Shared watching:** incremental polling, checkpoints, edit/reply handling,
-   rate backoff, and local fanout only if several agents need it.
-4. **Evaluate:** measure broker delay, API cost, and collaboration friction before
+1. **Standalone CLI and installation:** package templates and assets; implement
+   reproducible setup, diagnosis, and upgrades preserving existing instructions.
+2. **Safe queue and editor:** registry, signed requests, atomic fenced claims,
+   revision-safe editing, proof verification, and viewer requests with receipts.
+3. **Standard work and collaboration:** mathematics rules, generation receipts,
+   recursion limits, committed hints, and recoverable conversation watching.
+4. **Release verification:** exercise installation and negative permission tests
+   in a disposable GitHub repository, plus races, stale edits, replay, crashes,
+   missed events, duplicate generation, and preservation of customized skills.
+5. **Evaluate:** measure broker delay, API cost, and collaboration friction before
    considering a small discussion server or remote push relay.
 
 ## 10. Decisions for review

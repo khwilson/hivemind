@@ -1,0 +1,13 @@
+{
+  "name": "hivemind-web",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i hivemind/web/input.css -o hivemind/web/style.css --minify",
+    "watch:css": "tailwindcss -i hivemind/web/input.css -o hivemind/web/style.css --watch",
+    "check": "node --check hivemind/web/app.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

@@ -7,6 +7,8 @@ instructions, and committed handoff hints. A static dashboard aggregates selecte
 repositories through GitHub. No persistent Hivemind API or database is required.
 This per-project arrangement is the approved architecture; the
 [canonical design](design.md) specifies its branch rules and broker credentials.
+The [deliverable requirements](deliverables.md) specify the standalone setup and
+agent CLI, versioned instruction/skill bundle, editable viewer, and standard work.
 
 This document records the intended architecture. The companion
 [Discussions design](discussions.md) describes agent communication and proposed
@@ -77,15 +79,20 @@ It rejects incorrect scope, expired requests, revoked keys, and replay. It reads
 authorization from the trusted default branch, never from the state branch or a
 request payload.
 
-Explicitly configured maintainers may issue unsigned `add`, `prioritize`, and
-`note` requests under their authenticated GitHub actor IDs. This exception is
-limited to those capabilities and configured projects. It does not let an issue
+Explicitly configured maintainers may issue unsigned `add`, `edit`, `prioritize`,
+`cancel`, and `note` requests under their authenticated GitHub actor IDs. This
+exception is limited to those capabilities and configured projects. It does not let an issue
 author edit authorization, claim an agent identity, or fabricate completion.
+Reject edited unsigned requests unless their author/edit provenance can be
+verified. Preserve the accepted request and observed identity with its receipt.
+An agent using a maintainer's credential inherits its human capabilities.
 
 Agents may write ordinary work branches and create request Issues. They cannot
 administer settings, bypass coordination rules, or merge coordination changes
 without trusted review. Protect broker code, dependencies, workflow definitions,
 registry, CI policy, and CODEOWNERS itself on the default branch.
+Protect standard-work rules and their executable or prompt dependencies as
+reviewed inputs to automatic task generation.
 
 Restrict state branch creation and updates to the dedicated broker App. Keep
 force-push and deletion prohibitions in separate rulesets with no App bypass;
@@ -168,6 +175,38 @@ swarm while posting consequential coordination to Discussions. This supports
 the design note's intended scale of roughly five humans with three agents each
 without requiring a shared Redis, database, or model-provider account.
 
+Task and queue revisions fence human edits as claim IDs fence agent operations.
+An edit or reorder includes the revision the user observed. Stale requests fail
+without overwriting newer work, and the viewer preserves the unsaved draft.
+Material edits to active criteria or dependencies require explicit release and
+claim invalidation. Cancellation invalidates a lease but does not satisfy its
+dependents. Evidence stays bound to the completed task revision; a new objective
+requires a new task. Reordering does not preempt current claims.
+
+## Standard-work generation
+
+The broker also reconciles default-branch pushes, merged PRs, and verified task
+completion against protected `standard-work.json` rules and durable cursors.
+It creates ordinary visible tasks; agents, not the privileged broker, perform
+mathematical reasoning. The mathematics profile includes inspecting new results
+for weaker assumptions, broader statements, reusable lemmas, and limitations.
+Reviews commit an artifact with theorem/source references, assumptions, checks,
+and clear distinctions among proof, conjecture, counterexample, and intuition.
+No useful generalization is an acceptable reasoned outcome.
+
+Rules specify path filters, skill and template versions, priority, evidence, and
+generation limits. New tasks retain source SHAs and rule/configuration provenance.
+Normalize a PR merge and its push to one source identity; atomically commit the
+generation receipt, cursor, and new task. Ignore state, coordination, hints, and
+review-only changes by default. Bound depth and task counts, surface deferred
+work, preserve cancelled-task receipts, and require explicit bounded backfills.
+These controls prevent retries and review reports from producing endless work.
+
+Generated tasks use the same revision-safe editing and proof contracts as manual
+tasks. Schema checks can establish that a structured review artifact exists;
+formalization or independent review is needed for stronger mathematical evidence.
+See [standard-work requirements](deliverables.md#standard-work-generated-by-the-broker).
+
 ## Verified completion
 
 Proof identifies a full commit SHA, pull request, and explanation of acceptance
@@ -199,10 +238,24 @@ session and is not embedded in the deployment. Render task and Discussion text
 as untrusted content. Pages hosts static HTML, CSS, and JavaScript; runtime state
 comes from GitHub. [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 
+The viewer submits human add/edit/prioritize/cancel requests to each project's
+Issue inbox and shows pending receipts, accepted changes, errors, and conflicts.
+It does not write state directly or receive the broker credential. Generated
+tasks expose provenance and can be dismissed; generation-rule changes remain
+protected configuration edits.
+
 Installing into a target checkout preserves existing `AGENTS.md` rules and
 updates only Hivemind's marked section. Committed `.hivemind/` configuration
 identifies the coordinating target repository and project; committed hints preserve findings and handoffs
 alongside the code. Installation does not implicitly grant repository access.
+
+The planned standalone uv tool bundles Typer commands, viewer assets, a skill
+catalog, and versioned `AGENTS.md`/`SKILL.md` templates. Setup is repeatable;
+upgrades preserve customized instructions through managed hashes and reviewable
+diffs. Existing repositories receive protected-file changes through setup PRs.
+`doctor` verifies live repository permissions and reports remaining manual steps,
+not success based only on generated files. See the
+[setup and CLI requirements](deliverables.md#setup-and-agent-cli).
 
 History supports inspection and recovery, but a blind reset can resurrect old
 claims and erase replay receipts. Repair state through an explicit validated

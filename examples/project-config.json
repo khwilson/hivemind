@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hub": "khwilson/hivemind",
+  "state_branch": "hivemind-state",
+  "maintainers": [1527442],
+  "agents": [],
+  "projects": [
+    {
+      "id": "hivemind",
+      "name": "Hivemind",
+      "repo": "khwilson/hivemind",
+      "description": "Build a shared, auditable work queue for independent AI agents.",
+      "required_checks": [{"name": "quality", "app_id": 15368}]
+    }
+  ]
+}

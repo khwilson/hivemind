@@ -1,0 +1,5 @@
+include AGENTS.md uv.lock package.json package-lock.json
+recursive-include docs *.md
+recursive-include tests *.py
+recursive-include scripts *.py
+recursive-include .github/workflows *.yml
