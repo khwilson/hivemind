@@ -236,3 +236,8 @@ broker's evidence rules and atomic state publication remain Hivemind code. The
 adapter resolves `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`; SDK host
 and JWT environment defaults cannot override these credentials. Conflict retries
 remain in the broker, with no automatic write replay in the API adapter.
+
+A separate [typing generator prototype](../integrations/ghapi_typing/README.md)
+extracts selected operations from pinned official GitHub OpenAPI metadata and
+generates Pydantic models and typed sync/async adapters for ghapi. It is an
+upstream contribution draft, not part of Hivemind's runtime API adapter.

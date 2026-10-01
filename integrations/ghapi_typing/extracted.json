@@ -1,0 +1,1281 @@
+{
+  "components": {
+    "examples": {
+      "check-run-paginated": {
+        "value": {
+          "check_runs": [
+            {
+              "app": {
+                "created_at": "2017-07-08T16:18:44-04:00",
+                "description": "",
+                "events": [
+                  "push",
+                  "pull_request"
+                ],
+                "external_url": "https://example.com",
+                "html_url": "https://github.com/apps/octoapp",
+                "id": 1,
+                "name": "Octocat App",
+                "node_id": "MDExOkludGVncmF0aW9uMQ==",
+                "owner": {
+                  "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                  "events_url": "https://api.github.com/orgs/github/events",
+                  "followers_url": "https://api.github.com/users/octocat/followers",
+                  "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                  "gravatar_id": "",
+                  "html_url": "https://github.com/octocat",
+                  "id": 1,
+                  "login": "github",
+                  "node_id": "MDEyOk9yZ2FuaXphdGlvbjE=",
+                  "organizations_url": "https://api.github.com/users/octocat/orgs",
+                  "received_events_url": "https://api.github.com/users/octocat/received_events",
+                  "repos_url": "https://api.github.com/orgs/github/repos",
+                  "site_admin": true,
+                  "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                  "type": "User",
+                  "url": "https://api.github.com/orgs/github"
+                },
+                "permissions": {
+                  "contents": "read",
+                  "issues": "write",
+                  "metadata": "read",
+                  "single_file": "write"
+                },
+                "slug": "octoapp",
+                "updated_at": "2017-07-08T16:18:44-04:00"
+              },
+              "check_suite": {
+                "id": 5
+              },
+              "completed_at": "2018-05-04T01:14:52Z",
+              "conclusion": "neutral",
+              "details_url": "https://example.com",
+              "external_id": "",
+              "head_sha": "ce587453ced02b1526dfb4cb910479d431683101",
+              "html_url": "https://github.com/github/hello-world/runs/4",
+              "id": 4,
+              "name": "mighty_readme",
+              "node_id": "MDg6Q2hlY2tSdW40",
+              "output": {
+                "annotations_count": 2,
+                "annotations_url": "https://api.github.com/repos/github/hello-world/check-runs/4/annotations",
+                "summary": "There are 0 failures, 2 warnings, and 1 notice.",
+                "text": "You may have some misspelled words on lines 2 and 4. You also may want to add a section in your README about how to install your app.",
+                "title": "Mighty Readme report"
+              },
+              "pull_requests": [
+                {
+                  "base": {
+                    "ref": "master",
+                    "repo": {
+                      "id": 526,
+                      "name": "hello-world",
+                      "url": "https://api.github.com/repos/github/hello-world"
+                    },
+                    "sha": "e7fdf7640066d71ad16a86fbcbb9c6a10a18af4f"
+                  },
+                  "head": {
+                    "ref": "say-hello",
+                    "repo": {
+                      "id": 526,
+                      "name": "hello-world",
+                      "url": "https://api.github.com/repos/github/hello-world"
+                    },
+                    "sha": "3dca65fa3e8d4b3da3f3d056c59aee1c50f41390"
+                  },
+                  "id": 1934,
+                  "number": 3956,
+                  "url": "https://api.github.com/repos/github/hello-world/pulls/1"
+                }
+              ],
+              "started_at": "2018-05-04T01:14:52Z",
+              "status": "completed",
+              "url": "https://api.github.com/repos/github/hello-world/check-runs/4"
+            }
+          ],
+          "total_count": 1
+        }
+      },
+      "git-ref": {
+        "value": {
+          "node_id": "MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==",
+          "object": {
+            "sha": "aa218f56b14c9653891f9e74264a383fa43fefbd",
+            "type": "commit",
+            "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd"
+          },
+          "ref": "refs/heads/featureA",
+          "url": "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/featureA"
+        }
+      }
+    },
+    "headers": {
+      "link": {
+        "example": "<https://api.github.com/resource?page=2>; rel=\"next\", <https://api.github.com/resource?page=5>; rel=\"last\"",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "check-name": {
+        "description": "Returns check runs with the specified `name`.",
+        "in": "query",
+        "name": "check_name",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "commit-ref": {
+        "description": "The commit reference. Can be a commit SHA, branch name (`heads/BRANCH_NAME`), or tag name (`tags/TAG_NAME`). For more information, see \"[Git References](https://git-scm.com/book/en/v2/Git-Internals-Git-References)\" in the Git documentation.",
+        "in": "path",
+        "name": "ref",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "x-multi-segment": true
+      },
+      "git-ref-only": {
+        "description": "The Git reference. For more information, see \"[Git References](https://git-scm.com/book/en/v2/Git-Internals-Git-References)\" in the Git documentation.",
+        "example": "heads/feature-a",
+        "in": "path",
+        "name": "ref",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "x-multi-segment": true
+      },
+      "owner": {
+        "description": "The account owner of the repository. The name is not case sensitive.",
+        "in": "path",
+        "name": "owner",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "page": {
+        "description": "The page number of the results to fetch. For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\"",
+        "in": "query",
+        "name": "page",
+        "schema": {
+          "default": 1,
+          "type": "integer"
+        }
+      },
+      "per-page": {
+        "description": "The number of results per page (max 100). For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\"",
+        "in": "query",
+        "name": "per_page",
+        "schema": {
+          "default": 30,
+          "type": "integer"
+        }
+      },
+      "repo": {
+        "description": "The name of the repository without the `.git` extension. The name is not case sensitive.",
+        "in": "path",
+        "name": "repo",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "status": {
+        "description": "Returns check runs with the specified `status`.",
+        "in": "query",
+        "name": "status",
+        "required": false,
+        "schema": {
+          "enum": [
+            "queued",
+            "in_progress",
+            "completed"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "conflict": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/basic-error"
+            }
+          }
+        },
+        "description": "Conflict"
+      },
+      "not_found": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/basic-error"
+            }
+          }
+        },
+        "description": "Resource not found"
+      },
+      "validation_failed": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/validation-error"
+            }
+          }
+        },
+        "description": "Validation failed, or the endpoint has been spammed."
+      }
+    },
+    "schemas": {
+      "basic-error": {
+        "description": "Basic Error",
+        "properties": {
+          "documentation_url": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "title": "Basic Error",
+        "type": "object"
+      },
+      "check-run": {
+        "description": "A check performed on the code of a given code change",
+        "properties": {
+          "app": {
+            "$ref": "#/components/schemas/nullable-integration"
+          },
+          "check_suite": {
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "completed_at": {
+            "example": "2018-05-04T01:14:52Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "conclusion": {
+            "enum": [
+              "success",
+              "failure",
+              "neutral",
+              "cancelled",
+              "skipped",
+              "timed_out",
+              "action_required"
+            ],
+            "example": "neutral",
+            "nullable": true,
+            "type": "string"
+          },
+          "deployment": {
+            "$ref": "#/components/schemas/deployment-simple"
+          },
+          "details_url": {
+            "example": "https://example.com",
+            "nullable": true,
+            "type": "string"
+          },
+          "external_id": {
+            "example": "42",
+            "nullable": true,
+            "type": "string"
+          },
+          "head_sha": {
+            "description": "The SHA of the commit that is being checked.",
+            "example": "009b8a3a9ccbb128af87f9b1c0f4c62e8a304f6d",
+            "type": "string"
+          },
+          "html_url": {
+            "example": "https://github.com/github/hello-world/runs/4",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "The id of the check.",
+            "example": 21,
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The name of the check.",
+            "example": "test-coverage",
+            "type": "string"
+          },
+          "node_id": {
+            "example": "MDg6Q2hlY2tSdW40",
+            "type": "string"
+          },
+          "output": {
+            "properties": {
+              "annotations_count": {
+                "type": "integer"
+              },
+              "annotations_url": {
+                "format": "uri",
+                "type": "string"
+              },
+              "summary": {
+                "nullable": true,
+                "type": "string"
+              },
+              "text": {
+                "nullable": true,
+                "type": "string"
+              },
+              "title": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "summary",
+              "text",
+              "annotations_count",
+              "annotations_url"
+            ],
+            "type": "object"
+          },
+          "pull_requests": {
+            "description": "Pull requests that are open with a `head_sha` or `head_branch` that matches the check. The returned pull requests do not necessarily indicate pull requests that triggered the check.",
+            "items": {
+              "$ref": "#/components/schemas/pull-request-minimal"
+            },
+            "type": "array"
+          },
+          "started_at": {
+            "example": "2018-05-04T01:14:52Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "The phase of the lifecycle that the check is currently in. Statuses of waiting, requested, and pending are reserved for GitHub Actions check runs.",
+            "enum": [
+              "queued",
+              "in_progress",
+              "completed",
+              "waiting",
+              "requested",
+              "pending"
+            ],
+            "example": "queued",
+            "type": "string"
+          },
+          "url": {
+            "example": "https://api.github.com/repos/github/hello-world/check-runs/4",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "node_id",
+          "head_sha",
+          "name",
+          "url",
+          "html_url",
+          "details_url",
+          "status",
+          "conclusion",
+          "started_at",
+          "completed_at",
+          "external_id",
+          "check_suite",
+          "output",
+          "app",
+          "pull_requests"
+        ],
+        "title": "CheckRun",
+        "type": "object"
+      },
+      "deployment-simple": {
+        "description": "A deployment created as the result of an Actions check run from a workflow that references an environment",
+        "properties": {
+          "created_at": {
+            "example": "2012-07-20T01:19:13Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "example": "Deploy request from hubot",
+            "nullable": true,
+            "type": "string"
+          },
+          "environment": {
+            "description": "Name for the target deployment environment.",
+            "example": "production",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the deployment",
+            "example": 42,
+            "type": "integer"
+          },
+          "node_id": {
+            "example": "MDEwOkRlcGxveW1lbnQx",
+            "type": "string"
+          },
+          "original_environment": {
+            "example": "staging",
+            "type": "string"
+          },
+          "performed_via_github_app": {
+            "$ref": "#/components/schemas/nullable-integration"
+          },
+          "production_environment": {
+            "description": "Specifies if the given environment is one that end-users directly interact with. Default: false.",
+            "example": true,
+            "type": "boolean"
+          },
+          "repository_url": {
+            "example": "https://api.github.com/repos/octocat/example",
+            "format": "uri",
+            "type": "string"
+          },
+          "statuses_url": {
+            "example": "https://api.github.com/repos/octocat/example/deployments/1/statuses",
+            "format": "uri",
+            "type": "string"
+          },
+          "task": {
+            "description": "Parameter to specify a task to execute",
+            "example": "deploy",
+            "type": "string"
+          },
+          "transient_environment": {
+            "description": "Specifies if the given environment is will no longer exist at some point in the future. Default: false.",
+            "example": true,
+            "type": "boolean"
+          },
+          "updated_at": {
+            "example": "2012-07-20T01:19:13Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "example": "https://api.github.com/repos/octocat/example/deployments/1",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "node_id",
+          "task",
+          "environment",
+          "description",
+          "statuses_url",
+          "repository_url",
+          "url",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Deployment",
+        "type": "object"
+      },
+      "enterprise": {
+        "description": "An enterprise on GitHub.",
+        "properties": {
+          "avatar_url": {
+            "format": "uri",
+            "type": "string"
+          },
+          "created_at": {
+            "example": "2019-01-26T19:01:12Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "A short description of the enterprise.",
+            "nullable": true,
+            "type": "string"
+          },
+          "html_url": {
+            "example": "https://github.com/enterprises/octo-business",
+            "format": "uri",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the enterprise",
+            "example": 42,
+            "type": "integer"
+          },
+          "name": {
+            "description": "The name of the enterprise.",
+            "example": "Octo Business",
+            "type": "string"
+          },
+          "node_id": {
+            "example": "MDEwOlJlcG9zaXRvcnkxMjk2MjY5",
+            "type": "string"
+          },
+          "slug": {
+            "description": "The slug url identifier for the enterprise.",
+            "example": "octo-business",
+            "type": "string"
+          },
+          "updated_at": {
+            "example": "2019-01-26T19:14:43Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "website_url": {
+            "description": "The enterprise's website URL.",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "node_id",
+          "name",
+          "slug",
+          "html_url",
+          "created_at",
+          "updated_at",
+          "avatar_url"
+        ],
+        "title": "Enterprise",
+        "type": "object"
+      },
+      "git-ref": {
+        "description": "Git references within a repository",
+        "properties": {
+          "node_id": {
+            "type": "string"
+          },
+          "object": {
+            "properties": {
+              "sha": {
+                "description": "SHA for the reference",
+                "example": "7638417db6d59f3c431d3e1f261cc637155684cd",
+                "maxLength": 40,
+                "minLength": 40,
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "url": {
+                "format": "uri",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "sha",
+              "url"
+            ],
+            "type": "object"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "node_id",
+          "url",
+          "object"
+        ],
+        "title": "Git Reference",
+        "type": "object"
+      },
+      "nullable-integration": {
+        "description": "GitHub apps are a new way to extend GitHub. They can be installed directly on organizations and user accounts and granted access to specific repositories. They come with granular permissions and built-in webhooks. GitHub apps are first class actors within GitHub.",
+        "nullable": true,
+        "properties": {
+          "client_id": {
+            "example": "\"Iv1.25b5d1e65ffc4022\"",
+            "type": "string"
+          },
+          "created_at": {
+            "example": "2017-07-08T16:18:44-04:00",
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "example": "The description of the app.",
+            "nullable": true,
+            "type": "string"
+          },
+          "events": {
+            "description": "The list of events for the GitHub app. Note that the `installation_target`, `security_advisory`, and `meta` events are not included because they are global events and not specific to an installation.",
+            "example": [
+              "label",
+              "deployment"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "external_url": {
+            "example": "https://example.com",
+            "format": "uri",
+            "type": "string"
+          },
+          "html_url": {
+            "example": "https://github.com/apps/super-ci",
+            "format": "uri",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the GitHub app",
+            "example": 37,
+            "type": "integer"
+          },
+          "installations_count": {
+            "description": "The number of installations associated with the GitHub app. Only returned when the integration is requesting details about itself.",
+            "example": 5,
+            "type": "integer"
+          },
+          "name": {
+            "description": "The name of the GitHub app",
+            "example": "Probot Owners",
+            "type": "string"
+          },
+          "node_id": {
+            "example": "MDExOkludGVncmF0aW9uMQ==",
+            "type": "string"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/simple-user"
+              },
+              {
+                "$ref": "#/components/schemas/enterprise"
+              }
+            ]
+          },
+          "permissions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The set of permissions for the GitHub app",
+            "example": {
+              "deployments": "write",
+              "issues": "read"
+            },
+            "properties": {
+              "checks": {
+                "type": "string"
+              },
+              "contents": {
+                "type": "string"
+              },
+              "deployments": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "string"
+              },
+              "metadata": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "slug": {
+            "description": "The slug name of the GitHub app",
+            "example": "probot-owners",
+            "type": "string"
+          },
+          "updated_at": {
+            "example": "2017-07-08T16:18:44-04:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "node_id",
+          "owner",
+          "name",
+          "description",
+          "external_url",
+          "html_url",
+          "created_at",
+          "updated_at",
+          "permissions",
+          "events"
+        ],
+        "title": "GitHub app",
+        "type": "object"
+      },
+      "pull-request-minimal": {
+        "properties": {
+          "base": {
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "repo": {
+                "properties": {
+                  "id": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "sha": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ref",
+              "sha",
+              "repo"
+            ],
+            "type": "object"
+          },
+          "head": {
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "repo": {
+                "properties": {
+                  "id": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "sha": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ref",
+              "sha",
+              "repo"
+            ],
+            "type": "object"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "number": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "url",
+          "head",
+          "base"
+        ],
+        "title": "Pull Request Minimal",
+        "type": "object"
+      },
+      "simple-user": {
+        "description": "A GitHub user.",
+        "properties": {
+          "avatar_url": {
+            "example": "https://github.com/images/error/octocat_happy.gif",
+            "format": "uri",
+            "type": "string"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "events_url": {
+            "example": "https://api.github.com/users/octocat/events{/privacy}",
+            "type": "string"
+          },
+          "followers_url": {
+            "example": "https://api.github.com/users/octocat/followers",
+            "format": "uri",
+            "type": "string"
+          },
+          "following_url": {
+            "example": "https://api.github.com/users/octocat/following{/other_user}",
+            "type": "string"
+          },
+          "gists_url": {
+            "example": "https://api.github.com/users/octocat/gists{/gist_id}",
+            "type": "string"
+          },
+          "gravatar_id": {
+            "example": "41d064eb2195891e12d0413f63227ea7",
+            "nullable": true,
+            "type": "string"
+          },
+          "html_url": {
+            "example": "https://github.com/octocat",
+            "format": "uri",
+            "type": "string"
+          },
+          "id": {
+            "example": 1,
+            "format": "int64",
+            "type": "integer"
+          },
+          "login": {
+            "example": "octocat",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "node_id": {
+            "example": "MDQ6VXNlcjE=",
+            "type": "string"
+          },
+          "organizations_url": {
+            "example": "https://api.github.com/users/octocat/orgs",
+            "format": "uri",
+            "type": "string"
+          },
+          "received_events_url": {
+            "example": "https://api.github.com/users/octocat/received_events",
+            "format": "uri",
+            "type": "string"
+          },
+          "repos_url": {
+            "example": "https://api.github.com/users/octocat/repos",
+            "format": "uri",
+            "type": "string"
+          },
+          "site_admin": {
+            "type": "boolean"
+          },
+          "starred_at": {
+            "example": "\"2020-07-09T00:17:55Z\"",
+            "type": "string"
+          },
+          "starred_url": {
+            "example": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+            "type": "string"
+          },
+          "subscriptions_url": {
+            "example": "https://api.github.com/users/octocat/subscriptions",
+            "format": "uri",
+            "type": "string"
+          },
+          "type": {
+            "example": "User",
+            "type": "string"
+          },
+          "url": {
+            "example": "https://api.github.com/users/octocat",
+            "format": "uri",
+            "type": "string"
+          },
+          "user_view_type": {
+            "example": "public",
+            "type": "string"
+          }
+        },
+        "required": [
+          "avatar_url",
+          "events_url",
+          "followers_url",
+          "following_url",
+          "gists_url",
+          "gravatar_id",
+          "html_url",
+          "id",
+          "node_id",
+          "login",
+          "organizations_url",
+          "received_events_url",
+          "repos_url",
+          "site_admin",
+          "starred_url",
+          "subscriptions_url",
+          "type",
+          "url"
+        ],
+        "title": "Simple User",
+        "type": "object"
+      },
+      "validation-error": {
+        "description": "Validation Error",
+        "properties": {
+          "documentation_url": {
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "index": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "value": {
+                  "oneOf": [
+                    {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    {
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true,
+                      "type": "array"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "code"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "documentation_url"
+        ],
+        "title": "Validation Error",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "Support",
+      "url": "https://support.github.com/contact?tags=dotcom-rest-api"
+    },
+    "description": "GitHub's v3 REST API.",
+    "license": {
+      "name": "MIT",
+      "url": "https://spdx.org/licenses/MIT"
+    },
+    "termsOfService": "https://docs.github.com/articles/github-terms-of-service",
+    "title": "GitHub v3 REST API",
+    "version": "1.1.4",
+    "x-github-plan": "api.github.com"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/repos/{owner}/{repo}/commits/{ref}/check-runs": {
+      "get": {
+        "description": "Lists check runs for a commit ref. The `ref` can be a SHA, branch name, or a tag name.\n\n> [!NOTE]\n> The endpoints to manage checks only look for pushes in the repository where the check suite or check run were created. Pushes to a branch in a forked repository are not detected and return an empty `pull_requests` array.\n\nIf there are more than 1000 check suites on a single git reference, this endpoint will limit check runs to the 1000 most recent check suites. To iterate over all possible check runs, use the [List check suites for a Git reference](https://docs.github.com/rest/reference/checks#list-check-suites-for-a-git-reference) endpoint and provide the `check_suite_id` parameter to the [List check runs in a check suite](https://docs.github.com/rest/reference/checks#list-check-runs-in-a-check-suite) endpoint.\n\nOAuth app tokens and personal access tokens (classic) need the `repo` scope to use this endpoint on a private repository.",
+        "externalDocs": {
+          "description": "API method documentation",
+          "url": "https://docs.github.com/rest/checks/runs#list-check-runs-for-a-git-reference"
+        },
+        "operationId": "checks/list-for-ref",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/owner"
+          },
+          {
+            "$ref": "#/components/parameters/repo"
+          },
+          {
+            "$ref": "#/components/parameters/commit-ref"
+          },
+          {
+            "$ref": "#/components/parameters/check-name"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "description": "Filters check runs by their `completed_at` timestamp. `latest` returns the most recent check runs.",
+            "in": "query",
+            "name": "filter",
+            "required": false,
+            "schema": {
+              "default": "latest",
+              "enum": [
+                "latest",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/per-page"
+          },
+          {
+            "$ref": "#/components/parameters/page"
+          },
+          {
+            "in": "query",
+            "name": "app_id",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "$ref": "#/components/examples/check-run-paginated"
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "check_runs": {
+                      "items": {
+                        "$ref": "#/components/schemas/check-run"
+                      },
+                      "type": "array"
+                    },
+                    "total_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "total_count",
+                    "check_runs"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Response",
+            "headers": {
+              "Link": {
+                "$ref": "#/components/headers/link"
+              }
+            }
+          }
+        },
+        "summary": "List check runs for a Git reference",
+        "tags": [
+          "checks"
+        ],
+        "x-github": {
+          "category": "checks",
+          "enabledForGitHubApps": true,
+          "githubCloudOnly": false,
+          "subcategory": "runs"
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/ref/{ref}": {
+      "get": {
+        "description": "Returns a single reference from your Git database. The `:ref` in the URL must be formatted as `heads/<branch name>` for branches and `tags/<tag name>` for tags. If the `:ref` doesn't match an existing ref, a `404` is returned.\n\n> [!NOTE]\n> You need to explicitly [request a pull request](https://docs.github.com/rest/pulls/pulls#get-a-pull-request) to trigger a test merge commit, which checks the mergeability of pull requests. For more information, see \"[Checking mergeability of pull requests](https://docs.github.com/rest/guides/getting-started-with-the-git-database-api#checking-mergeability-of-pull-requests)\".",
+        "externalDocs": {
+          "description": "API method documentation",
+          "url": "https://docs.github.com/rest/git/refs#get-a-reference"
+        },
+        "operationId": "git/get-ref",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/owner"
+          },
+          {
+            "$ref": "#/components/parameters/repo"
+          },
+          {
+            "$ref": "#/components/parameters/git-ref-only"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "$ref": "#/components/examples/git-ref"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/git-ref"
+                }
+              }
+            },
+            "description": "Response"
+          },
+          "404": {
+            "$ref": "#/components/responses/not_found"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
+          }
+        },
+        "summary": "Get a reference",
+        "tags": [
+          "git"
+        ],
+        "x-github": {
+          "category": "git",
+          "enabledForGitHubApps": true,
+          "githubCloudOnly": false,
+          "subcategory": "refs"
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/refs/{ref}": {
+      "patch": {
+        "description": "Updates the provided reference to point to a new SHA. For more information, see \"[Git References](https://git-scm.com/book/en/v2/Git-Internals-Git-References)\" in the Git documentation.",
+        "externalDocs": {
+          "description": "API method documentation",
+          "url": "https://docs.github.com/rest/git/refs#update-a-reference"
+        },
+        "operationId": "git/update-ref",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/owner"
+          },
+          {
+            "$ref": "#/components/parameters/repo"
+          },
+          {
+            "$ref": "#/components/parameters/git-ref-only"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "force": true,
+                    "sha": "aa218f56b14c9653891f9e74264a383fa43fefbd"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "force": {
+                    "default": false,
+                    "description": "Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to `false` will make sure you're not overwriting work.",
+                    "type": "boolean"
+                  },
+                  "sha": {
+                    "description": "The SHA1 value to set this reference to",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sha"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "$ref": "#/components/examples/git-ref"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/git-ref"
+                }
+              }
+            },
+            "description": "Response"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/validation_failed"
+          }
+        },
+        "summary": "Update a reference",
+        "tags": [
+          "git"
+        ],
+        "x-github": {
+          "category": "git",
+          "enabledForGitHubApps": true,
+          "githubCloudOnly": false,
+          "subcategory": "refs"
+        }
+      }
+    }
+  }
+}

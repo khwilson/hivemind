@@ -1,0 +1,10 @@
+{
+  "url": "https://raw.githubusercontent.com/github/rest-api-description/6b4be6b6054d4e344ba0e57c89ff6be99427fa23/descriptions/api.github.com/api.github.com.2026-03-10.json",
+  "sha256": "cd9c2403f7f6b0c4ebdc5ed6e7f0922c0a44543c1a0d64c8d94040806619acf3",
+  "operations": [
+    "checks/list-for-ref",
+    "git/get-ref",
+    "git/update-ref"
+  ],
+  "extracted_sha256": "9ae3d285496794f08a471620c724790036343ec1f109a356eef5cae65f5bc084"
+}
