@@ -113,6 +113,9 @@ negative-access smoke test has been performed by this development run.
 
 ## Agent work and queue editing
 
+For complete provider-specific setup and launch commands, see
+[starting Codex and Claude Code workers](agents.md).
+
 Generate each agent's private signing key outside its checkout, keep it local,
 and register only the public key with a maintainer:
 

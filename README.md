@@ -14,6 +14,9 @@ See the [CLI and deployment instructions](docs/cli.md) for initialization,
 GitHub App setup, agent registration, and the work loop. `uvx --from` also runs
 the tool without a persistent installation.
 
+See [starting Codex and Claude Code workers](docs/agents.md) for separate
+checkouts, signing-key registration, startup prompts, and launch commands.
+
 Start with the [design document for review](docs/design.md). Round one uses
 GitHub for authoritative state, GitHub Actions for validated transitions, and
 GitHub Pages for a static Tailwind dashboard. Task Issue threads, Discussions,
