@@ -186,7 +186,7 @@ whether integration is required before dependent tasks become ready. Completing
 a task does not itself merge a PR.
 
 Installation preserves existing `AGENTS.md` rules and updates only a marked
-Hivemind section. Committed `.hivemind/` configuration identifies the project and
+Hivemind section. Committed `hivemind.toml` configuration identifies the project and
 repository. Agents commit useful findings, commands, and unresolved questions under
 `.hivemind/hints/`, linked to relevant conversations. No credentials belong there.
 
@@ -197,7 +197,7 @@ and handoff skills. Templates identify capabilities but do not grant permissions
 Upgrades compare managed-file hashes, preserve local instructions, and propose
 diffs for customized files instead of overwriting them.
 
-Protected `standard-work.json` rules let the broker enqueue routine inspection
+Protected `hivemind.toml` rules let the broker enqueue routine inspection
 from default-branch pushes, merged PRs, and verified completions. The broker
 selects work deterministically; authorized agents perform the reasoning. A
 mathematics rule asks whether assumptions can be weakened, results generalized,
@@ -353,3 +353,13 @@ baked into public assets. [GitHub Pages](https://docs.github.com/en/pages/gettin
 The detailed [state architecture](architecture.md) and
 [Discussions watcher design](discussions.md) expand these mechanisms. Those
 documents are supporting references; this draft is the review entry point.
+
+### Configuration location
+
+A single root `hivemind.toml` on each project's protected default branch holds
+project metadata, agent and human authorization, evidence policies, and
+standard-work rules. Configuration is reviewed with trusted CODEOWNERS and is
+never accepted from the state branch. The broker reads all policy at one immutable
+commit and records that configuration SHA in receipts. Secrets remain outside
+this file. Queue state, hints, reusable skills, and generated asset manifests are
+separate artifacts rather than additional configuration sources.

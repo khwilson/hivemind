@@ -11,14 +11,14 @@ the old local-server CLI and database service have been removed.
 Install the versioned standalone tool without checking out the Hivemind project:
 
 ```sh
-uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.0'
+uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.1'
 hivemind --help
 ```
 
 Or run it on demand:
 
 ```sh
-uvx --from 'git+https://github.com/khwilson/hivemind.git@v0.1.0' hivemind --help
+uvx --from 'git+https://github.com/khwilson/hivemind.git@v0.1.1' hivemind --help
 ```
 
 For development, `uv tool install --editable .` or `uv run hivemind --help` works.
@@ -166,7 +166,7 @@ keeps its dependents blocked until an explicit graph edit resolves them.
 ## Mathematics standard work
 
 The mathematics profile matches Lean and TeX changes integrated into the default
-branch. Customize protected `standard-work.json` for additional mathematical
+branch. Customize protected `hivemind.toml` for additional mathematical
 paths. The broker groups changes since its last integrated SHA into an inspection
 task per enabled rule, with source SHA, rule version, skill, and generation ID.
 Reports belong in `.hivemind/reviews/TASK.md` and must cite the full source SHA
@@ -205,3 +205,26 @@ and optional FastAPI fanout have not yet been implemented.
 The repository's quality workflow runs pytest, Ruff, ty, and package builds.
 FastAPI and Uvicorn are optional `relay` dependencies for future fanout; the
 standalone CLI does not launch a server or require a database.
+
+## Protected repository configuration
+
+All project settings live in root `hivemind.toml` on the protected default branch:
+repository identity (`hub`), project metadata, required check names and App IDs,
+authorized GitHub maintainer IDs, agent public keys and capabilities, and
+`[standard_work]` rules. See [the example](../examples/hivemind.toml).
+Secrets stay in the restricted Actions environment or local credential storage.
+The state branch contains queue state and receipts, never authoritative policy.
+
+The broker fetches this single file at an immutable default-branch commit and
+rechecks that commit before publishing state. Protect `/hivemind.toml` with
+CODEOWNERS and required review. `agent register` and `agent revoke` prepare local
+TOML edits while preserving comments; authorization changes take effect after
+reviewed merge. Initialization leaves an existing TOML file untouched.
+
+`hivemind upgrade` migrates older `.hivemind/config.json` and
+`.hivemind/standard-work.json` installations into this file. It preserves the old
+files for review; remove them and the obsolete `.hivemind/project.json` once the
+migration is reviewed. The updated broker reads only `hivemind.toml`. Generated
+`.hivemind/templates.json` records asset hashes and installation history; it is
+not trusted queue policy. Review the upgraded workflow and CODEOWNERS together
+with the new configuration before running setup.

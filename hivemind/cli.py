@@ -13,6 +13,7 @@ import typer
 
 from .broker import execute_broker
 from .client import Client
+from .configuration import CONFIG, write_agents
 from .doctor import doctor as inspect_installation
 from .github import GitHub, validate_repo
 from .installation import (
@@ -24,7 +25,7 @@ from .installation import (
     read_settings,
     setup_plan,
 )
-from .models import Action, Agent, CheckPolicy
+from .models import Action, Agent, CheckPolicy, Settings
 from .signing import generate, key_id
 
 app = typer.Typer(
@@ -98,7 +99,7 @@ def context(ctx: typer.Context) -> Options:
 def connection(ctx: typer.Context) -> tuple[Client, str]:
     opts = context(ctx)
     repo, project = opts.repo, opts.project
-    if (opts.path / ".hivemind/config.json").exists():
+    if (opts.path / CONFIG).exists():
         settings = read_settings(opts.path)
         repo = repo or settings.hub
         if repo.lower() == settings.hub:
@@ -180,7 +181,13 @@ def upgrade(
 
     def operation() -> dict[str, Any]:
         opts = context(ctx)
-        settings = read_settings(opts.path)
+        settings = (
+            read_settings(opts.path)
+            if (opts.path / CONFIG).exists()
+            else Settings.model_validate_json(
+                checked_path(opts.path.resolve(), ".hivemind/config.json").read_text()
+            )
+        )
         manifest = json.loads(
             checked_path(opts.path, ".hivemind/templates.json").read_text()
         )
@@ -291,9 +298,7 @@ def register(
             projects=[settings.projects[0].id],
         )
         settings.agents.append(agent)
-        checked_path(root, ".hivemind/config.json").write_text(
-            dump(settings.model_dump())
-        )
+        write_agents(checked_path(root.resolve(), CONFIG), settings)
         return {
             "agent": agent.model_dump(),
             "next": "Review and commit the protected registry change; registration is not effective yet.",
@@ -313,9 +318,7 @@ def revoke(ctx: typer.Context, agent: str) -> None:
         if registered is None:
             raise ValueError("Agent key not registered")
         registered.revoked = True
-        checked_path(root, ".hivemind/config.json").write_text(
-            dump(settings.model_dump())
-        )
+        write_agents(checked_path(root.resolve(), CONFIG), settings)
         return {
             "agent": agent,
             "next": "Review and commit revocation to the protected default branch.",
@@ -509,7 +512,7 @@ def hint(ctx: typer.Context, task: str, text: Annotated[str, typer.Option()]) ->
 
 @broker.command("run")
 def run_broker(
-    config: Annotated[Path, typer.Option()] = Path(".hivemind/config.json"),
+    config: Annotated[Path, typer.Option()] = Path(CONFIG),
 ) -> None:
     """Reconcile requests and standard work using the protected broker App token."""
     perform(lambda: execute_broker(config))

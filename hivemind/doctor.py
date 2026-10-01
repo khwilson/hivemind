@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .configuration import CONFIG, parse_settings
 from .github import GitHub
 from .installation import checked_path, read_settings, setup_plan
-from .standard_work import StandardWork
 
 
 def doctor(
@@ -25,9 +25,7 @@ def doctor(
         and settings.projects[0].repo.lower() == settings.hub,
     )
     check("trusted maintainers", bool(settings.maintainers))
-    standard = StandardWork.model_validate_json(
-        checked_path(root, ".hivemind/standard-work.json").read_text()
-    )
+    standard = settings.standard_work
     check(
         "standard-work rules",
         len({r.id for r in standard.rules}) == len(standard.rules),
@@ -45,8 +43,8 @@ def doctor(
     repo = settings.hub
     metadata = api.get(f"/repos/{repo}")
     branch = metadata["default_branch"]
-    remote_config = api.json_file(repo, ".hivemind/config.json", branch)
-    check("reviewed default-branch config", remote_config == settings.model_dump())
+    remote_config = parse_settings(api.text_file(repo, CONFIG, branch))
+    check("reviewed default-branch config", remote_config == settings)
     expected = setup_plan(repo, branch, app_id or 1)
     rulesets = api.pages(f"/repos/{repo}/rulesets?includes_parents=true")
     for desired in expected["rulesets"]:

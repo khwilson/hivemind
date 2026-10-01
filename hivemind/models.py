@@ -43,6 +43,21 @@ class Agent(Model):
     revoked: bool = False
 
 
+class Rule(Model):
+    id: str = Field(pattern=r"^[a-z0-9-]{1,64}$")
+    version: int = Field(ge=1)
+    enabled: bool = True
+    paths: list[str]
+    priority: int = Field(default=3, ge=1, le=3)
+    skill: Literal["mathematics-generalization", "mathematics-review"]
+    max_tasks_per_sweep: int = Field(default=10, ge=1, le=100)
+
+
+class StandardWork(Model):
+    version: Literal[1] = 1
+    rules: list[Rule] = Field(default_factory=list, max_length=20)
+
+
 class Settings(Model):
     version: Literal[1] = 1
     hub: str
@@ -50,6 +65,7 @@ class Settings(Model):
     maintainers: list[StrictInt]
     agents: list[Agent] = Field(default_factory=list)
     projects: list[ProjectConfig] = Field(min_length=1, max_length=1)
+    standard_work: StandardWork = Field(default_factory=StandardWork)
 
     @field_validator("hub")
     @classmethod

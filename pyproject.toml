@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hivemind"
-version = "0.1.0"
+version = "0.1.1"
 description = "Standalone GitHub work queues and repository setup for authorized agents"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["typer>=0.12,<1", "sqlmodel>=0.0.22,<1", "cryptography>=44,<50"]
+dependencies = ["typer>=0.12,<1", "sqlmodel>=0.0.22,<1", "cryptography>=44,<50", "tomlkit>=0.13,<1"]
 
 [project.optional-dependencies]
 relay = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]

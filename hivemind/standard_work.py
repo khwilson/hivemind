@@ -2,28 +2,11 @@
 
 import fnmatch
 import hashlib
-from typing import Literal
-
-from pydantic import Field
 
 from .github import GitHub
-from .models import Model, Settings, State
+from .models import Rule as Rule
+from .models import Settings, StandardWork, State
 from .queue import Queue
-
-
-class Rule(Model):
-    id: str = Field(pattern=r"^[a-z0-9-]{1,64}$")
-    version: int = Field(ge=1)
-    enabled: bool = True
-    paths: list[str]
-    priority: int = Field(default=3, ge=1, le=3)
-    skill: Literal["mathematics-generalization", "mathematics-review"]
-    max_tasks_per_sweep: int = Field(default=10, ge=1, le=100)
-
-
-class StandardWork(Model):
-    version: Literal[1] = 1
-    rules: list[Rule] = Field(default_factory=list, max_length=20)
 
 
 def reconcile(

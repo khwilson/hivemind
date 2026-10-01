@@ -36,7 +36,7 @@ jobs:
           permission-pull-requests: read
           permission-checks: read
       - name: Reconcile requests and standard work
-        run: uvx --from "@@SOURCE@@" hivemind broker run --config .hivemind/config.json
+        run: uvx --from "@@SOURCE@@" hivemind broker run --config hivemind.toml
         env:
           GH_TOKEN: ${{ steps.broker-token.outputs.token }}
           HIVEMIND_CONFIG_SHA: ${{ github.sha }}

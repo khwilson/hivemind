@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from .configuration import CONFIG, parse_settings
 from .github import ApiError, GitHub
 from .models import Envelope, Receipt, Settings, State, SubmitArgs
 from .queue import Queue
@@ -263,17 +264,13 @@ def run(
             config_sha = api.get(
                 f"/repos/{settings.hub}/commits/{metadata['default_branch']}"
             )["sha"]
-            latest = Settings.model_validate(
-                api.json_file(settings.hub, ".hivemind/config.json", config_sha)
-            )
+            latest = parse_settings(api.text_file(settings.hub, CONFIG, config_sha))
             if latest.hub != settings.hub:
                 raise ValueError(
                     "Trusted configuration changed coordinating repository"
                 )
             settings = latest
-            standard = StandardWork.model_validate(
-                api.json_file(settings.hub, ".hivemind/standard-work.json", config_sha)
-            )
+            standard = settings.standard_work
             hub = Hub(settings, api)
         parent, state = hub.load()
         before = dump(state.model_dump(exclude={"receipts"}))
@@ -339,17 +336,12 @@ def run(
 
 
 def execute_broker(config: Path) -> dict[str, int]:
-    settings = Settings.model_validate_json(config.read_text())
+    settings = parse_settings(config.read_text())
     if os.environ.get("GITHUB_REPOSITORY", settings.hub).lower() != settings.hub:
         raise ValueError("Coordinating repository must match the workflow repository")
     if len(settings.projects) != 1 or settings.projects[0].repo.lower() != settings.hub:
         raise ValueError("Each broker must govern its own repository only")
     config_sha = os.environ.get("HIVEMIND_CONFIG_SHA", "local-development")
     api = GitHub()
-    standard_path = config.with_name("standard-work.json")
-    standard = (
-        StandardWork.model_validate_json(standard_path.read_text())
-        if standard_path.exists()
-        else None
-    )
+    standard = settings.standard_work
     return run(settings, api, api, config_sha, standard, refresh_config=True)

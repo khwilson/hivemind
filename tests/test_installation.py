@@ -41,7 +41,9 @@ def test_repeatable_installation_preserves_existing_rules(tmp_path):
     assert not second["changed"]
     assert before == after
     assert doctor(tmp_path)["status"] == "local-valid"
-    rules = json.loads((tmp_path / ".hivemind/standard-work.json").read_text())
+    rules = __import__("tomllib").loads((tmp_path / "hivemind.toml").read_text())[
+        "standard_work"
+    ]
     assert rules["rules"][0]["enabled"]
 
 
@@ -140,4 +142,4 @@ def test_nested_directory_escape_is_checked_before_any_install_writes(tmp_path):
     with pytest.raises(ValueError, match="inside checkout"):
         install(root)
     assert not (root / "AGENTS.md").exists()
-    assert not (root / ".hivemind/config.json").exists()
+    assert not (root / "hivemind.toml").exists()

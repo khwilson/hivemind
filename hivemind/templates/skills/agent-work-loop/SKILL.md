@@ -5,7 +5,7 @@ description: Claim and complete Hivemind tasks with fenced leases and broker rec
 
 # Agent Work Loop
 
-Read AGENTS.md, .hivemind/project.json, relevant hints, and the task criteria.
+Read AGENTS.md, hivemind.toml, relevant hints, and the task criteria.
 Use `hivemind --wait 300 claim` and begin only after an accepted receipt.
 If pending, query `hivemind request show REQUEST_ID`. Retain the claim_id.
 Claims last two hours; renew with `hivemind heartbeat TASK --claim-id ID` well

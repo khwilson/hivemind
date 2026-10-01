@@ -8,10 +8,11 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+from .configuration import CONFIG, parse_settings, serialize_settings
 from .github import ApiError, GitHub, validate_repo
-from .models import CheckPolicy, ProjectConfig, Settings
+from .models import CheckPolicy, ProjectConfig, Rule, Settings, StandardWork
 
-SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.0"
+SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.1"
 START, END = "<!-- hivemind:start -->", "<!-- hivemind:end -->"
 
 
@@ -31,9 +32,7 @@ def checked_path(root: Path, relative: str) -> Path:
 
 
 def read_settings(root: Path) -> Settings:
-    return Settings.model_validate_json(
-        checked_path(root.resolve(), ".hivemind/config.json").read_text()
-    )
+    return parse_settings(checked_path(root.resolve(), CONFIG).read_text())
 
 
 def checkout_repo(root: Path) -> str | None:
@@ -98,9 +97,20 @@ def initialize(
     origin = checkout_repo(root)
     if origin is not None and origin != repo:
         raise ValueError("Checkout origin differs from the requested repository")
-    config_path = checked_path(root, ".hivemind/config.json")
-    if config_path.exists():
-        settings = read_settings(root)
+    config_path = checked_path(root, CONFIG)
+    legacy = checked_path(root, ".hivemind/config.json")
+    if not config_path.exists() and legacy.exists():
+        settings = Settings.model_validate_json(legacy.read_text())
+        standard = checked_path(root, ".hivemind/standard-work.json")
+        if standard.exists():
+            settings.standard_work = StandardWork.model_validate_json(
+                standard.read_text()
+            )
+    else:
+        settings = None
+    if config_path.exists() or settings is not None:
+        settings = read_settings(root) if config_path.exists() else settings
+        assert settings is not None
         if (
             settings.hub != repo
             or len(settings.projects) != 1
@@ -117,6 +127,17 @@ def initialize(
         settings = Settings(
             hub=repo,
             maintainers=maintainers,
+            standard_work=StandardWork(
+                rules=[
+                    Rule(
+                        id="mathematics-generalization",
+                        version=1,
+                        enabled=profile == "mathematics",
+                        paths=["**/*.lean", "*.lean", "**/*.tex", "*.tex"],
+                        skill="mathematics-generalization",
+                    )
+                ]
+            ),
             projects=[
                 ProjectConfig(
                     id=project or project_slug(repo),
@@ -147,9 +168,6 @@ def initialize(
 
     proposed: dict[str, str] = {
         ".github/workflows/hivemind-broker.yml": render("broker.yml"),
-        ".hivemind/project.json": dump(
-            {"repo": repo, "project": project_id, "state_branch": settings.state_branch}
-        ),
     }
     if code_owner is not None:
         proposed[".github/CODEOWNERS"] = (
@@ -158,9 +176,7 @@ def initialize(
                 f"{path} @{code_owner}\n"
                 for path in [
                     "/.github/",
-                    "/.hivemind/config.json",
-                    "/.hivemind/project.json",
-                    "/.hivemind/standard-work.json",
+                    "/hivemind.toml",
                     "/.hivemind/skills/",
                     "/pyproject.toml",
                     "/uv.lock",
@@ -168,32 +184,29 @@ def initialize(
                 ]
             )
         )
+    elif checked_path(root, ".github/CODEOWNERS").exists():
+        owners = checked_path(root, ".github/CODEOWNERS").read_text()
+        migrated = re.sub(
+            r"^/\.hivemind/config\.json(.*)$",
+            r"/hivemind.toml\1",
+            owners,
+            flags=re.MULTILINE,
+        )
+        migrated = re.sub(
+            r"^/\.hivemind/(?:project|standard-work)\.json.*\n?",
+            "",
+            migrated,
+            flags=re.MULTILINE,
+        )
+        if migrated != owners:
+            proposed[".github/CODEOWNERS"] = migrated
     for skill in resource.joinpath("skills").iterdir():
         if skill.is_dir():
             proposed[f".hivemind/skills/{skill.name}/SKILL.md"] = skill.joinpath(
                 "SKILL.md"
             ).read_text()
-    for relative, content in {
-        ".hivemind/config.json": dump(settings.model_dump()),
-        ".hivemind/standard-work.json": dump(
-            {
-                "version": 1,
-                "rules": [
-                    {
-                        "id": "mathematics-generalization",
-                        "version": 1,
-                        "enabled": profile == "mathematics",
-                        "paths": ["**/*.lean", "*.lean", "**/*.tex", "*.tex"],
-                        "priority": 3,
-                        "skill": "mathematics-generalization",
-                        "max_tasks_per_sweep": 10,
-                    }
-                ],
-            }
-        ),
-    }.items():
-        if not checked_path(root, relative).exists():
-            proposed[relative] = content
+    if not config_path.exists():
+        proposed[CONFIG] = serialize_settings(settings)
     manifest_path = checked_path(root, ".hivemind/templates.json")
     previous = (
         json.loads(manifest_path.read_text()).get("files", {})
@@ -203,7 +216,16 @@ def initialize(
     changed: list[str] = []
     preserved: list[str] = []
     conflicts: list[str] = []
-    hashes = dict(previous)
+    hashes = {
+        k: v
+        for k, v in previous.items()
+        if k
+        not in {
+            ".hivemind/config.json",
+            ".hivemind/project.json",
+            ".hivemind/standard-work.json",
+        }
+    }
     writes: dict[str, str] = {}
     for relative, content in proposed.items():
         path = checked_path(root, relative)
@@ -369,8 +391,8 @@ def apply_setup(root: Path, api: GitHub, app_id: int, client_id: str) -> dict[st
     if not metadata.get("permissions", {}).get("admin"):
         raise ValueError("Setup needs repository administration access")
     branch = metadata["default_branch"]
-    remote = api.json_file(repo, ".hivemind/config.json", branch)
-    if Settings.model_validate(remote) != settings:
+    remote = parse_settings(api.text_file(repo, CONFIG, branch))
+    if remote != settings:
         raise ValueError(
             "Commit the reviewed installation to the default branch before setup"
         )

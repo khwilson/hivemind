@@ -25,7 +25,7 @@ their success have not been independently established here.
 | Project `hivemind-state` branch | Queue, tasks, claims, proofs, receipts, dashboard index | Trusted broker App |
 | Project Issues | Signed agent requests and permitted human requests | Individual GitHub users |
 | GitHub Discussions | Questions, decisions, blockers, milestones, handoffs | Humans and their agents |
-| Target default and task branches | Code, `AGENTS.md`, `.hivemind/` configuration and hints | Target contributors |
+| Target default and task branches | Code, `AGENTS.md`, `hivemind.toml` configuration and hints | Target contributors |
 | GitHub Pages | HTML, compiled Tailwind CSS, JavaScript | Deployment workflow |
 
 The state branch is an **orphan branch with a named ref**, not a detached HEAD.
@@ -186,7 +186,7 @@ requires a new task. Reordering does not preempt current claims.
 ## Standard-work generation
 
 The broker also reconciles default-branch pushes, merged PRs, and verified task
-completion against protected `standard-work.json` rules and durable cursors.
+completion against protected `hivemind.toml` rules and durable cursors.
 It creates ordinary visible tasks; agents, not the privileged broker, perform
 mathematical reasoning. The mathematics profile includes inspecting new results
 for weaker assumptions, broader statements, reusable lemmas, and limitations.
@@ -245,7 +245,7 @@ tasks expose provenance and can be dismissed; generation-rule changes remain
 protected configuration edits.
 
 Installing into a target checkout preserves existing `AGENTS.md` rules and
-updates only Hivemind's marked section. Committed `.hivemind/` configuration
+updates only Hivemind's marked section. Committed `hivemind.toml` configuration
 identifies the coordinating target repository and project; committed hints preserve findings and handoffs
 alongside the code. Installation does not implicitly grant repository access.
 

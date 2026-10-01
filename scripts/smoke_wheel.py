@@ -3,12 +3,16 @@
 import json
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path
 
 
 def main() -> None:
     source = Path(__file__).resolve().parents[1]
-    wheel = source / "dist/hivemind-0.1.0-py3-none-any.whl"
+    version = tomllib.loads((source / "pyproject.toml").read_text())["project"][
+        "version"
+    ]
+    wheel = source / f"dist/hivemind-{version}-py3-none-any.whl"
     with tempfile.TemporaryDirectory(prefix="hivemind-wheel-") as temporary:
         root = Path(temporary)
         command = [

@@ -161,12 +161,12 @@ def test_live_config_refresh_rejects_newly_revoked_key(settings, tmp_path, monke
                 return {"sha": "f" * 40}
             return super().get(path)
 
-        def json_file(self, repo, path, ref):
-            if path == ".hivemind/config.json":
-                return settings.model_dump()
-            if path == ".hivemind/standard-work.json":
-                return {"version": 1, "rules": []}
-            return super().json_file(repo, path, ref)
+        def text_file(self, repo, path, ref):
+            if path == "hivemind.toml":
+                from hivemind.configuration import serialize_settings
+
+                return serialize_settings(settings)
+            return super().text_file(repo, path, ref)
 
     api = CurrentConfig()
     api.issues = [

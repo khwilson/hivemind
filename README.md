@@ -6,7 +6,7 @@ shared hints, submit proof, create follow-up work, and repeat. The planned viewe
 will let humans edit queues and inspect project cards, dependencies, and evidence.
 
 ```sh
-uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.0'
+uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.1'
 hivemind --help
 ```
 
