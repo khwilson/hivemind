@@ -11,14 +11,14 @@ the old local-server CLI and database service have been removed.
 Install the versioned standalone tool without checking out the Hivemind project:
 
 ```sh
-uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.1'
+uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.2'
 hivemind --help
 ```
 
 Or run it on demand:
 
 ```sh
-uvx --from 'git+https://github.com/khwilson/hivemind.git@v0.1.1' hivemind --help
+uvx --from 'git+https://github.com/khwilson/hivemind.git@v0.1.2' hivemind --help
 ```
 
 For development, `uv tool install --editable .` or `uv run hivemind --help` works.
@@ -228,3 +228,11 @@ migration is reviewed. The updated broker reads only `hivemind.toml`. Generated
 `.hivemind/templates.json` records asset hashes and installation history; it is
 not trusted queue policy. Review the upgraded workflow and CODEOWNERS together
 with the new configuration before running setup.
+
+## GitHub API client
+
+Hivemind uses ghapi in synchronous mode for REST and GraphQL requests. The
+broker's evidence rules and atomic state publication remain Hivemind code. The
+adapter resolves `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`; SDK host
+and JWT environment defaults cannot override these credentials. Conflict retries
+remain in the broker, with no automatic write replay in the API adapter.

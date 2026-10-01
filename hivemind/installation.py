@@ -12,7 +12,7 @@ from .configuration import CONFIG, parse_settings, serialize_settings
 from .github import ApiError, GitHub, validate_repo
 from .models import CheckPolicy, ProjectConfig, Rule, Settings, StandardWork
 
-SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.1"
+SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.2"
 START, END = "<!-- hivemind:start -->", "<!-- hivemind:end -->"
 
 
