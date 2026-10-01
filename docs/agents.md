@@ -22,7 +22,9 @@ hivemind whoami
 ```
 
 Use an ordinary worker GitHub account with access to the target repository's
-code, Issues, and PRs. It must not be an administrator or trusted coordinator
+code, Issues, and PRs. The [exact worker permissions](permissions.md) list token
+permissions, collaborator token limitations, and Hivemind action scopes.
+It must not be an administrator or trusted coordinator
 reviewer. Record the `id` from `whoami` for registration. If `GH_TOKEN` or
 `GITHUB_TOKEN` is set, it takes precedence over the `gh` login; make sure it
 belongs to this worker. Do not supply the broker App credential to either model.

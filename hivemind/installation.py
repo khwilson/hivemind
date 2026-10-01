@@ -373,7 +373,7 @@ def setup_plan(repo: str, branch: str, app_id: int) -> dict[str, Any]:
             ),
         ],
         "manual_steps": [
-            "Install the broker App in this repository with contents/Issues write and checks/PRs read.",
+            "Install the broker App with contents/Issues write and checks/statuses/PRs read.",
             "Set coordination environment variable HIVEMIND_APP_CLIENT_ID and secret HIVEMIND_APP_PRIVATE_KEY.",
             "Require trusted CODEOWNERS for coordination code, workflows, policy, dependencies, and CODEOWNERS itself.",
             "Agent credentials must not have administration access or trusted-owner identity.",

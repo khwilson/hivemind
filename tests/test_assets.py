@@ -27,6 +27,17 @@ def test_privileged_workflow_runs_trusted_code_and_scopes_credential(tmp_path):
     token = next(s for s in job["steps"] if s.get("id") == "broker-token")
     assert token["with"]["repositories"] == "${{ github.event.repository.name }}"
     assert token["with"]["private-key"] == "${{ secrets.HIVEMIND_APP_PRIVATE_KEY }}"
+    assert {
+        key: value
+        for key, value in token["with"].items()
+        if key.startswith("permission-")
+    } == {
+        "permission-contents": "write",
+        "permission-issues": "write",
+        "permission-pull-requests": "read",
+        "permission-checks": "read",
+        "permission-statuses": "read",
+    }
 
 
 def test_packaged_skills_have_discoverable_frontmatter():

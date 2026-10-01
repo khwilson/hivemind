@@ -65,9 +65,12 @@ change the protected local configuration; they take effect after reviewed merge.
 ## Initial GitHub setup
 
 Register a broker App dedicated to this project and install it only in the target
-repository. Grant contents and Issues write, checks and pull requests read, and
-ordinary metadata read. Give it no administration or workflow-editing permission.
+repository. Grant contents and Issues write; checks, commit statuses and pull
+requests read; and ordinary metadata read. Give it no administration or
+workflow-editing permission.
 App registration and private-key custody remain manual initial setup.
+
+Worker credentials have a separate [permission contract](permissions.md).
 
 ```sh
 hivemind --path /path/to/target setup --app-id APP_ID

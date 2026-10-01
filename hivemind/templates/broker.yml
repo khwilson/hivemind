@@ -35,6 +35,7 @@ jobs:
           permission-issues: write
           permission-pull-requests: read
           permission-checks: read
+          permission-statuses: read
       - name: Reconcile requests and standard work
         run: uvx --from "@@SOURCE@@" hivemind broker run --config hivemind.toml
         env:
