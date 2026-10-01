@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .configuration import CONFIG, parse_settings
-from .github import GitHub
+from .github_client import GitHub
 from .installation import checked_path, read_settings, setup_plan
 
 

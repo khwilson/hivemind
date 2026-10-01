@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from .models import CheckPolicy
 
 if TYPE_CHECKING:
-    from .github import GitHub
+    from .github_client import GitHub
 
 
 def verify(

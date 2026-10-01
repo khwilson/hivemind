@@ -3,7 +3,7 @@ import json
 import pytest
 
 from hivemind.broker import Hub, process, run
-from hivemind.github import ApiError, GitHub
+from hivemind.github_client import ApiError, GitHub
 from hivemind.models import Payload, State
 from hivemind.signing import authorize, canonical, sign
 

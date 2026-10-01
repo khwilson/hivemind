@@ -5,7 +5,7 @@ import json
 import httpx2
 import pytest
 
-from hivemind.github import ApiError, GitHub
+from hivemind.github_client import ApiError, GitHub
 
 
 @pytest.fixture

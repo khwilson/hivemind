@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from hivemind.github import ApiError, GitHub
+from hivemind.github_client import ApiError, GitHub
 from hivemind.installation import apply_setup, initialize, read_settings
 from hivemind.models import CheckPolicy
 

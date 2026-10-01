@@ -1,4 +1,10 @@
-"""Validated file schemas. GitHub is the database; no ORM tables are created."""
+"""Hivemind configuration, request, and queue-state schemas.
+
+These describe our coordination protocol, rather than GitHub API responses.
+SQLModel provides Pydantic-backed validation and dictionary export.
+JSON/TOML encoding happens in the broker and configuration modules.
+No database tables are created.
+"""
 
 from typing import Any, Literal
 
@@ -70,7 +76,7 @@ class Settings(Model):
     @field_validator("hub")
     @classmethod
     def hub_name(cls, value: str) -> str:
-        from .github import validate_repo
+        from .github_client import validate_repo
 
         return validate_repo(value).lower()
 

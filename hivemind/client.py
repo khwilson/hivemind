@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .broker import ISSUE_PREFIX, dump
-from .github import ApiError, GitHub, validate_repo
+from .github_client import ApiError, GitHub, validate_repo
 from .models import Action, Envelope, Payload
 from .signing import sign
 

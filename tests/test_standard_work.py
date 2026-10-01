@@ -1,4 +1,4 @@
-from hivemind.github import GitHub
+from hivemind.github_client import GitHub
 from hivemind.models import State
 from hivemind.standard_work import Rule, StandardWork, reconcile
 

@@ -3,7 +3,7 @@
 import fnmatch
 import hashlib
 
-from .github import GitHub
+from .github_client import GitHub
 from .models import Rule as Rule
 from .models import Settings, StandardWork, State
 from .queue import Queue

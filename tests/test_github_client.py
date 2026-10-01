@@ -1,7 +1,7 @@
 import pytest
 
 from hivemind.client import Client
-from hivemind.github import GitHub
+from hivemind.github_client import GitHub
 from hivemind.models import CheckPolicy
 
 

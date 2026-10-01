@@ -15,7 +15,7 @@ from .broker import execute_broker
 from .client import Client
 from .configuration import CONFIG, write_agents
 from .doctor import doctor as inspect_installation
-from .github import GitHub, validate_repo
+from .github_client import GitHub, validate_repo
 from .installation import (
     SOURCE,
     apply_setup,

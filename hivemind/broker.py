@@ -11,7 +11,7 @@ from typing import Any
 from urllib.parse import quote
 
 from .configuration import CONFIG, parse_settings
-from .github import ApiError, GitHub
+from .github_client import ApiError, GitHub
 from .models import Envelope, Receipt, Settings, State, SubmitArgs
 from .queue import Queue
 from .signing import authorize, canonical

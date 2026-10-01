@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .configuration import CONFIG, parse_settings, serialize_settings
-from .github import ApiError, GitHub, validate_repo
+from .github_client import ApiError, GitHub, validate_repo
 from .models import CheckPolicy, ProjectConfig, Rule, Settings, StandardWork
 
 SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.2"
