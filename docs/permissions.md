@@ -85,6 +85,24 @@ claim receipt; subsequent operations must respect the claim fence and lease.
 
 ## Protected branches and broker permissions
 
+### Private repositories
+
+The CLI and broker use authenticated GitHub APIs and support private repository
+access. Install the broker App on the private target and grant worker credentials
+access to it. The required rulesets and environment branch restrictions need
+GitHub Pro for personal repositories, or GitHub Team/Enterprise for organization
+repositories; GitHub Free is insufficient for this protected private setup.
+See GitHub's [ruleset availability](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
+and [environment availability](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
+
+The GitHub-backed viewer is still planned. It must fetch private queue state
+using each viewer's authorized credential, rather than bundle that state or a
+credential into public Pages assets. A private source repository does not by
+itself make a Pages website private. Private broker operation must be verified
+in a live smoke test before declaring a deployment ready.
+
+### Branch controls
+
 Worker pushes belong on ordinary work branches. The configured branch rules must
 protect the default branch's coordinator configuration and allow only the
 dedicated broker App to update `hivemind-state`. Repository Write and PR write
