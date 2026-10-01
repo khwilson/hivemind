@@ -10,6 +10,7 @@ from typing import Any
 
 from .configuration import CONFIG, parse_settings, serialize_settings
 from .github_client import ApiError, GitHub, validate_repo
+from .github_rules import ruleset_matches
 from .models import CheckPolicy, ProjectConfig, Rule, Settings, StandardWork
 
 SOURCE = "git+https://github.com/khwilson/hivemind.git@v0.1.2"
@@ -404,7 +405,7 @@ def apply_setup(root: Path, api: GitHub, app_id: int, client_id: str) -> dict[st
         prior = next((r for r in existing if r["name"] == desired["name"]), None)
         if prior:
             actual = api.get(f"/repos/{repo}/rulesets/{prior['id']}")
-            if any(actual.get(k) != v for k, v in desired.items()):
+            if not ruleset_matches(actual, desired):
                 raise ValueError(
                     f"Existing ruleset differs: {desired['name']}; reconcile it before setup"
                 )

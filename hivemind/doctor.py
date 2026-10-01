@@ -6,6 +6,7 @@ from typing import Any
 
 from .configuration import CONFIG, parse_settings
 from .github_client import GitHub
+from .github_rules import ruleset_matches
 from .installation import checked_path, read_settings, setup_plan
 
 
@@ -52,7 +53,7 @@ def doctor(
         ok = False
         if len(matches) == 1:
             actual = api.get(f"/repos/{repo}/rulesets/{matches[0]['id']}")
-            ok = all(actual.get(k) == v for k, v in desired.items())
+            ok = ruleset_matches(actual, desired)
         check(
             desired["name"],
             ok and app_id is not None,
