@@ -34,12 +34,14 @@ Optional permissions depend on the worker's tools:
 | Repository permission | Level | When needed |
 | --- | --- | --- |
 | Actions | Read | Inspect private workflow runs and logs |
+| Actions | Read and write | Optional `hivemind kick` to dispatch a broker run |
 | Checks | Read | Inspect private check runs with a compatible token |
 | Commit statuses | Read | Inspect private commit statuses |
 | Discussions | Read and write | Create discussions or replies through GitHub's API when Discussions is enabled |
 
-These are not required by the Hivemind queue commands. Completion is verified by
-the broker using its own credential. Workers do not need Actions write, Checks
+These are not required by the Hivemind queue request commands. Completion is
+verified by the broker using its own credential. Ordinary workers do not need
+Actions write, Checks
 write, Commit statuses write, Administration, Secrets, or Workflows write.
 Workflow-file changes require separately reviewed permission; the ordinary
 worker profile does not include it.

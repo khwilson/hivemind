@@ -15,7 +15,7 @@ from .broker import execute_broker
 from .client import Client
 from .configuration import CONFIG, write_agents
 from .doctor import doctor as inspect_installation
-from .github_client import GitHub, validate_repo
+from .github_client import ApiError, GitHub, validate_repo
 from .installation import (
     SOURCE,
     apply_setup,
@@ -322,6 +322,42 @@ def revoke(ctx: typer.Context, agent: str) -> None:
         return {
             "agent": agent,
             "next": "Review and commit revocation to the protected default branch.",
+        }
+
+    perform(operation)
+
+
+@app.command()
+def kick(ctx: typer.Context) -> None:
+    """Request a broker run on the repository's current default branch."""
+
+    def operation() -> dict[str, Any]:
+        client, _ = connection(ctx)
+        api, repo = client.api, client.hub
+        metadata = api.get(f"/repos/{repo}")
+        workflow_path = f"/repos/{repo}/actions/workflows/hivemind-broker.yml"
+        workflow = api.get(workflow_path)
+        if workflow["state"] != "active":
+            raise ValueError("Broker workflow is disabled; enable it in GitHub Actions")
+        try:
+            result = api.request(
+                workflow_path + "/dispatches",
+                "POST",
+                {"ref": metadata["default_branch"]},
+            )
+        except ApiError as exc:
+            if exc.status == 403:
+                raise ValueError(
+                    f"{exc}; kick requires Actions write permission on the target "
+                    "repository (or a compatible classic token with repo scope)"
+                ) from exc
+            raise
+        return {
+            "status": "dispatched",
+            "repo": repo,
+            "ref": metadata["default_branch"],
+            "url": (result or {}).get("html_url")
+            or f"https://github.com/{repo}/actions/workflows/hivemind-broker.yml",
         }
 
     perform(operation)

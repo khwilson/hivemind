@@ -64,6 +64,14 @@ change the protected local configuration; they take effect after reviewed merge.
 
 ## Initial GitHub setup
 
+After deployment, `hivemind kick` requests a fresh broker run on the repository's
+current default branch. Run it inside an initialized checkout, or use
+`hivemind --repo OWNER/REPO kick`. It returns the Actions URL; dispatch acceptance
+does not mean reconciliation succeeded or a task claim was accepted. Disabled
+workflows must be enabled in GitHub first. The caller needs Actions write access
+(or a compatible classic token with `repo` scope); ordinary workers can continue
+using Issue-triggered requests without that additional permission.
+
 Register a broker App dedicated to this project and install it only in the target
 repository. Grant contents and Issues write; checks, commit statuses and pull
 requests read; and ordinary metadata read. Give it no administration or
