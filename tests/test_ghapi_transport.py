@@ -83,6 +83,55 @@ def test_connection_failure_does_not_replay_issue_creation(api):
     assert len(requests) == 1
 
 
+def test_validation_error_reports_ruleset_installation_requirement(api):
+    detail = "Actor broker integration must be part of the ruleset source or owner organization"
+    with serve(
+        api,
+        lambda request: httpx2.Response(
+            422, json={"message": "Validation Failed", "errors": [detail]}
+        ),
+    ):
+        with pytest.raises(ApiError) as raised:
+            api.request("/repos/owner/math/rulesets", "POST", {"name": "State access"})
+    assert detail in str(raised.value)
+    assert "POST /repos/owner/math/rulesets" in str(raised.value)
+    assert raised.value.status == 422
+
+
+def test_validation_errors_omit_values_and_redact_authentication(api):
+    with serve(
+        api,
+        lambda request: httpx2.Response(
+            422,
+            json={
+                "message": "Rejected scoped-token",
+                "errors": [
+                    {
+                        "resource": "Secret",
+                        "field": "value",
+                        "code": "invalid",
+                        "value": "private-key-material",
+                    },
+                    "Invalid scoped-token",
+                ],
+                "documentation_url": "private-response-material",
+            },
+        ),
+    ):
+        with pytest.raises(ApiError) as raised:
+            api.request("/repos/owner/math/rulesets?secret=query-material", "POST", {})
+    message = str(raised.value)
+    assert "Secret: value: invalid" in message
+    assert "[REDACTED]" in message
+    for secret in (
+        "scoped-token",
+        "private-key-material",
+        "private-response-material",
+        "query-material",
+    ):
+        assert secret not in message
+
+
 def test_pagination_and_graphql_errors(api):
     pages = []
 

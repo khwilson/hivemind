@@ -70,6 +70,14 @@ requests read; and ordinary metadata read. Give it no administration or
 workflow-editing permission.
 App registration and private-key custody remain manual initial setup.
 
+Creating or authorizing the App does not install it. In the App's settings, use
+**Install App**, select the repository owner, and grant access to the target
+repository before running `setup --apply`. If GitHub rejects the App bypass actor
+with “integration must be part of the ruleset source or owner organization,”
+check that installation's selected repositories and suspension status. Setup may
+already have initialized the state branch; rerun it after correcting access
+without deleting that branch or loosening the protections.
+
 Worker credentials have a separate [permission contract](permissions.md).
 
 ```sh

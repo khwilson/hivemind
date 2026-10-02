@@ -23,6 +23,35 @@ class ApiError(ValueError):
         super().__init__(f"GitHub {status}: {message}")
 
 
+def error_message(response: httpx2.Response, token: str) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    message = body.get("message")
+    if not isinstance(message, str):
+        message = "Request failed"
+    details = []
+    errors = body.get("errors", [])
+    if isinstance(errors, list):
+        for error in errors[:10]:
+            if isinstance(error, str):
+                details.append(error)
+            elif isinstance(error, dict):
+                # Validation values and other response fields may contain secrets.
+                fields = [error.get(key) for key in ("resource", "field", "code")]
+                detail = ": ".join(field for field in fields if isinstance(field, str))
+                if detail:
+                    details.append(detail)
+    if details:
+        message += "; " + "; ".join(details)
+    if token:
+        message = message.replace(token, "[REDACTED]")
+    return message[:2000]
+
+
 def validate_repo(value: str) -> str:
     value = (
         value.strip()
@@ -79,10 +108,8 @@ class GitHub:
         try:
             return self.api(path, method, data=data)
         except httpx2.HTTPStatusError as exc:
-            try:
-                message = exc.response.json().get("message", "Request failed")
-            except (ValueError, AttributeError):
-                message = "Request failed"
+            message = error_message(exc.response, self.token)
+            message += f" ({method.upper()} {path.split('?', 1)[0]})"
             raise ApiError(exc.response.status_code, message) from exc
         except httpx2.RequestError as exc:
             raise ApiError(503, "Connection failed") from exc
