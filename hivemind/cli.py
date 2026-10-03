@@ -4,6 +4,7 @@ import base64
 import json
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,7 @@ from .installation import (
 )
 from .models import Action, Agent, CheckPolicy, Settings
 from .signing import generate, key_id
+from .status_view import print_status
 
 app = typer.Typer(
     help="Standalone GitHub work queues and repository setup.",
@@ -58,10 +60,11 @@ class Options:
     path: Path
 
 
-def perform(operation: Callable[[], Any]) -> Any:
+def perform(operation: Callable[[], Any], *, print_result: bool = True) -> Any:
     try:
         result = operation()
-        typer.echo(dump(result))
+        if print_result:
+            typer.echo(dump(result))
         return result
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
         typer.echo(f"Error: {exc}", err=True)
@@ -105,7 +108,9 @@ def connection(ctx: typer.Context) -> tuple[Client, str]:
         if repo.lower() == settings.hub:
             project = project or settings.projects[0].id
     if not repo:
-        raise ValueError("Pass --repo OWNER/REPO or run inside an initialized checkout")
+        raise ValueError(
+            "Use hivemind --repo OWNER/REPO COMMAND or run inside an initialized checkout"
+        )
     if not project:
         from .installation import project_slug
 
@@ -364,9 +369,35 @@ def kick(ctx: typer.Context) -> None:
 
 
 @app.command()
-def status(ctx: typer.Context) -> None:
-    """Read the repository's materialized task snapshot."""
-    perform(lambda: connection(ctx)[0].state())
+def status(
+    ctx: typer.Context,
+    repo: Annotated[
+        str | None, typer.Option(help="Target repository; overrides the global --repo.")
+    ] = None,
+    json_output: Annotated[
+        bool, typer.Option("--json", help="Print the complete JSON snapshot.")
+    ] = False,
+    pretty: Annotated[
+        bool,
+        typer.Option(help="Print a readable table even when output is redirected."),
+    ] = False,
+) -> None:
+    """Show the queue as a terminal table; redirected output defaults to JSON."""
+    if json_output and pretty:
+        raise typer.BadParameter("Choose either --json or --pretty")
+    if repo is not None:
+        context(ctx).repo = repo
+
+    def operation() -> dict[str, Any]:
+        client, _ = connection(ctx)
+        snapshot = client.state()
+        if not json_output and (pretty or sys.stdout.isatty()):
+            print_status(snapshot, client.hub)
+        else:
+            typer.echo(dump(snapshot))
+        return snapshot
+
+    perform(operation, print_result=False)
 
 
 @requests.command("show")

@@ -64,6 +64,14 @@ change the protected local configuration; they take effect after reviewed merge.
 
 ## Initial GitHub setup
 
+Inspect the queue with either `hivemind --repo OWNER/REPO status` or
+`hivemind status --repo OWNER/REPO`. Inside the target checkout, `hivemind status`
+reads the repository from `hivemind.toml`. A terminal displays a readable table
+with task IDs, priorities, state, workers, dependencies, and revisions. Redirected
+output remains the complete JSON snapshot for scripts; `--json` or `--pretty`
+explicitly selects the format. The command-level `--repo` overrides the global
+selection. Other commands continue to use the global `--repo` before the command.
+
 After deployment, `hivemind kick` requests a fresh broker run on the repository's
 current default branch. Run it inside an initialized checkout, or use
 `hivemind --repo OWNER/REPO kick`. It returns the Actions URL; dispatch acceptance
