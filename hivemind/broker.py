@@ -21,15 +21,36 @@ ISSUE_PREFIX = "[Hivemind] "
 
 
 def dump(value: Any) -> str:
+    """Encode JSON with sorted keys, indentation, and a final newline.
+
+    Reject non-finite numbers rather than writing nonstandard JSON into state,
+    request envelopes, or receipts. Serialization errors propagate to the caller.
+    """
     return json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n"
 
 
 class Hub:
+    """Read and publish queue state in one configured GitHub repository.
+
+    The supplied API credential must have access to the protected state branch.
+    This storage adapter does not authorize requests or retry concurrent writes;
+    the reconciliation loop owns those decisions.
+    """
+
     def __init__(self, settings: Settings, api: GitHub):
+        """Bind validated repository settings and the caller's GitHub API client."""
         self.settings, self.api = settings, api
+        # The base path to access information about the hub
         self.base = f"/repos/{settings.hub}"
 
     def load(self) -> tuple[str | None, State]:
+        """Return the state branch's commit SHA and state read at that commit.
+
+        A 404 when fetching the branch ref returns ``(None, State())`` for
+        initialization. Other API errors, a missing state file on an existing
+        branch, and invalid state data propagate rather than resetting the queue.
+        The returned SHA is the parent to use when publishing the next state.
+        """
         try:
             ref = self.api.get(
                 f"{self.base}/git/ref/heads/{quote(self.settings.state_branch, safe='')}"
@@ -44,6 +65,18 @@ class Hub:
         )
 
     def publish(self, parent: str | None, state: State, message: str) -> str:
+        """Publish state, snapshots, task artifacts, and receipts in one commit.
+
+        Initialize configured projects through ``Queue`` before serialization.
+        With a parent SHA, retain its tree and create a commit whose sole parent
+        is that SHA, then advance the branch without forcing. With no parent,
+        create an orphan commit and the initial branch ref. Readers see the new
+        files together only once the ref update succeeds.
+
+        Return the published commit SHA. API failures propagate; concurrent ref
+        updates require the caller to reload and revalidate, not replay a decided
+        transition. Failed publication can leave unreferenced Git objects.
+        """
         queue = Queue(state, self.settings)
         files = {
             "state.json": dump(state.model_dump(exclude={"receipts"})),
@@ -112,6 +145,21 @@ def process(
     config_sha: str,
     now: int,
 ) -> Receipt:
+    """Validate one request Issue and record its outcome in the supplied state.
+
+    Verify schema, replay protection, repository-scoped authorization, and the
+    provenance of unsigned human requests. Apply transitions to a deep copy so
+    invalid operations cannot partially mutate the queue. Completion additionally
+    requires broker-verified GitHub evidence; standard-work reviews must include
+    the required committed report and source provenance. No request code runs.
+
+    Copy successful queue changes back and record either an acceptance or a
+    validation rejection, including the observed author and configuration SHA.
+    Replay rejections get separate receipt IDs to preserve the original receipt.
+    API errors propagate without recording a decision, leaving the Issue pending
+    for a later sweep. The caller must publish state before notifying the author;
+    this function alone does not make its receipt durable.
+    """
     number = issue["number"]
     body = issue.get("body") or ""
     request_id = f"invalid-issue-{number}"
@@ -234,6 +282,12 @@ def process(
 def notify(
     api: GitHub, settings: Settings, number: int, receipt: Receipt, sha: str
 ) -> None:
+    """Comment with a committed receipt and close its request Issue.
+
+    Call only after publication succeeds. API failures propagate without rolling
+    back committed state. A later sweep can retry notification using that receipt;
+    a failure between commenting and closing may produce a duplicate comment.
+    """
     status = "accepted" if receipt.accepted else "rejected"
     body = f"Hivemind request **{status}**.\n\n{receipt.message}\n\nState commit: https://github.com/{settings.hub}/commit/{sha}\n\n```json\n{dump(receipt.result)}```"
     api.request(
@@ -250,6 +304,23 @@ def run(
     standard: StandardWork | None = None,
     refresh_config: bool = False,
 ) -> dict[str, int]:
+    """Reconcile a bounded inbox sweep, expiring claims and generating standard work.
+
+    Inspect up to 100 matching open Issues, excluding PRs. Each attempt reloads
+    state and reapplies decisions; previously processed Issues reuse their durable
+    receipts. Publish all changes before commenting on or closing request Issues.
+    Notification failures leave committed outcomes recoverable on the next sweep.
+
+    When ``refresh_config`` is enabled, read policy at the default branch's commit
+    and check its tip again before publication. A changed tip triggers fresh
+    validation. Publication errors with status 409 or 422 also trigger a reload,
+    with bounded jittered backoff. Allow at most five attempts; other API failures
+    propagate, and exhaustion raises instead of overwriting concurrent work.
+
+    Return processed request, acceptance, and generated-task counts for the
+    successful attempt. The broker selects and validates work; it never launches
+    model agents or executes project code.
+    """
     hub = Hub(settings, api)
     issues = [
         i
@@ -336,6 +407,16 @@ def run(
 
 
 def execute_broker(config: Path) -> dict[str, int]:
+    """Start repository-scoped reconciliation with the environment's API credential.
+
+    Parse the local bootstrap configuration and check its repository against
+    ``GITHUB_REPOSITORY`` when provided. Require the project to coordinate in its
+    own repository, then refresh authoritative policy from the protected default
+    branch during reconciliation. Use the same GitHub client for state writes
+    and proof reads; workflow setup supplies the restricted broker App credential.
+    Configuration and API failures propagate to the CLI so the workflow fails
+    visibly rather than reporting incomplete reconciliation as successful.
+    """
     settings = parse_settings(config.read_text())
     if os.environ.get("GITHUB_REPOSITORY", settings.hub).lower() != settings.hub:
         raise ValueError("Coordinating repository must match the workflow repository")
