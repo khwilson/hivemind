@@ -63,8 +63,34 @@ def main() -> None:
         )
         assert json.loads(result.stdout)["status"] == "local-valid"
         assert len(list((root / ".hivemind/skills").glob("*/SKILL.md"))) == 5
+        result = subprocess.run(
+            command + ["ui", "--help"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "--no-browser" in result.stdout
+        result = subprocess.run(
+            [
+                "uvx",
+                "--from",
+                str(wheel),
+                "--",
+                "python",
+                "-c",
+                "from importlib.resources import files; "
+                "from hivemind.ui import create_app; "
+                "assert 'Background commands' in files('hivemind.web').joinpath('app.js').read_text(); "
+                "assert files('hivemind.web').joinpath('style.css').read_bytes()",
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
         print(
-            "Wheel smoke passed: uvx initialization, repeatability, diagnostics, and five packaged skills."
+            "Wheel smoke passed: initialization, repeatability, diagnostics, skills, and local UI assets."
         )
 
 

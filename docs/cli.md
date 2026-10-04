@@ -215,6 +215,54 @@ cap cannot be exceeded because it creates only one task per rule. Explicit
 backfill and deeper recursion controls are future work. Batches reaching GitHub's
 300-file diff limit fail visibly without advancing the cursor.
 
+## Local queue viewer and editor
+
+Install the current Hivemind build, authenticate with `gh auth login`, and run:
+
+```sh
+hivemind ui --repo khwilson/hivemind-binary-words
+```
+
+Inside an initialized target checkout, `hivemind ui` reads its repository from
+`hivemind.toml`. The global form `hivemind --repo OWNER/REPO ui` also works.
+The command opens your default browser. To use another browser, including an
+in-app browser, run with `--no-browser` and open the full printed session URL.
+Use `--port 0` to select a free port, or `--port 8766` for a second instance.
+Stop the local server with Ctrl+C.
+
+The viewer shows project cards, queue status, workers, task and queue revisions,
+dependencies, subtasks, notes, recent activity, and verified proof links. Forms
+add and edit tasks, change priorities, reorder the queue, cancel work, and add
+notes. The Kick broker button requests a fresh Actions run. Queue ordering breaks
+ties within priority levels. This release opens one target repository per server;
+multi-repository aggregation and Pages editing remain planned.
+
+FastAPI serves the bundled Tailwind assets and runs a fixed set of Hivemind CLI
+commands in background subprocesses. It uses the terminal's GitHub credential,
+never passes that credential to the browser, and removes ambient Hivemind signing
+keys so edits are unsigned human requests. The caller must be a maintainer in
+the protected configuration; read access alone does not authorize writes. Kick
+also requires Actions write. No database, broker secret, or AWS deployment is
+needed. The server binds only to loopback, checks Host and Origin, and requires a
+random session token for API access. Keep the session URL on your own computer.
+
+Submissions remain pending until the GitHub broker accepts a durable receipt.
+Rejected edits show the broker's reason. Task edits carry the revision at which
+the form was opened; reorder requests carry the queue revision. Material edits
+to active work require explicitly releasing its claim. Drafts are saved in this
+browser's local storage and retain their original revision after conflicts;
+discard and reload a draft explicitly to start from current state. Private task
+text therefore persists on this computer. An accepted old edit does not erase a
+newer draft. Drafts and request history belong to the local URL's browser origin;
+use the same port and browser to retain them across server restarts.
+
+The viewer polls state every minute and pending receipts every 15 seconds.
+It never automatically retries a write. If the server stops or a command times
+out before its Issue ID is recovered, inspect the GitHub request Issues before
+retrying to avoid duplicates. Known request IDs can still recover receipts after
+a restart. The local server is a convenience for operating the GitHub queue,
+not a replacement for the trusted broker.
+
 ## Deployment and implementation limits
 
 Generated broker workflows run on request Issues, default-branch pushes, manual
@@ -228,13 +276,12 @@ The first implementation stores a canonical `state.json` plus inspectable task,
 claim, proof, ordering, receipt, and viewer-index files in one atomic commit.
 This differs from the eventual partitioned-authority layout in the design. The
 contents API's file-size limit bounds this prototype; larger queues need the
-partitioned reader before scaling. The viewer source is preserved as a draft,
-and its static GitHub editing adapter, Pages deployment, conversation watcher,
-and optional FastAPI fanout have not yet been implemented.
+partitioned reader before scaling. The local viewer and CLI-backed editor are
+implemented. The static GitHub editing adapter, Pages deployment, conversation
+watcher, and optional message fanout remain future work.
 
 The repository's quality workflow runs pytest, Ruff, ty, and package builds.
-FastAPI and Uvicorn are optional `relay` dependencies for future fanout; the
-standalone CLI does not launch a server or require a database.
+FastAPI and Uvicorn are included for `hivemind ui`; no database is required.
 
 ## Protected repository configuration
 

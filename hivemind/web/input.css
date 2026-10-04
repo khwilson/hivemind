@@ -137,6 +137,13 @@
   .back { @apply mb-5 p-0 text-[11px] text-muted; }
   .text-button { @apply text-[11px] text-leaf underline; }
   .row-actions { @apply flex gap-2; }
+  .checkbox-label { @apply flex items-center gap-2 text-xs; }
+  .checkbox-label input { @apply w-auto; }
+  .order-row { @apply flex items-center gap-2 border-b border-line py-3 text-xs; }
+  .order-row > span { @apply mr-auto; }
+  .badge.rejected, .badge.failed, .badge.unknown { @apply bg-[#fff0ee] text-[#af493e]; }
+  .badge.accepted, .badge.ready { @apply bg-leaf-soft text-leaf; }
+  .badge.pending, .badge.running { @apply bg-[#fff3e8] text-[#b8823f]; }
   .priority { @apply text-[#b18d58]; }
   a.external { @apply hover:underline; }
 }

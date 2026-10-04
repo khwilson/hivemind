@@ -2,8 +2,8 @@
 
 Hivemind provides a standalone CLI for GitHub repository work queues, setup,
 agent instructions, and mathematics follow-up work. Agents claim tasks, commit
-shared hints, submit proof, create follow-up work, and repeat. The planned viewer
-will let humans edit queues and inspect project cards, dependencies, and evidence.
+shared hints, submit proof, create follow-up work, and repeat. The local viewer
+lets humans edit queues and inspect project cards, dependencies, and evidence.
 
 ```sh
 uv tool install 'git+https://github.com/khwilson/hivemind.git@v0.1.2'
@@ -30,6 +30,13 @@ The document also considers a small AWS discussion server as a later extension.
 It is not required for round one. The earlier hosted database deployment plan
 has been superseded.
 
+Run the current build's local viewer with `hivemind ui --repo OWNER/REPO`, or
+`hivemind ui` inside an initialized target checkout. It opens your browser and
+uses your terminal's GitHub login. Queue edits run Hivemind commands in the
+background and show the broker's pending, accepted, or rejected receipts. See
+[local viewer instructions](docs/cli.md#local-queue-viewer-and-editor). This feature
+is newer than the `v0.1.2` release above; install a current commit to use it.
+
 The [deliverable requirements](docs/deliverables.md) define four parts:
 
 - A standalone uv-installable Typer CLI for setup, diagnosis, upgrades, and agent
@@ -48,11 +55,12 @@ skills, setup plans and settings application, diagnostics, signed queue requests
 revision-checked edits, and broker-generated mathematics review tasks. Local
 tests and package installation are verified. Live GitHub permissions and broker
 deployment still need a disposable-repository smoke test. The viewer's GitHub
-editor, Pages deployment, and conversation watcher remain future work.
+Pages adapter, multi-repository aggregation, and conversation watcher remain
+future work. The local viewer and broker-validated editor are implemented.
 
 The selected development tools are uv, Typer, SQLModel, Tailwind, pytest, Ruff,
-and ty. FastAPI is reserved for optional local message fanout or a future
-discussion service; the round-one dashboard has no hosted Python backend.
+and ty. FastAPI and Uvicorn serve the local CLI-backed viewer; the GitHub queue
+requires no hosted Python backend or database.
 
 ## Supporting documents
 

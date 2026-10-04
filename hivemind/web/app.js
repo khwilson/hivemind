@@ -1,149 +1,110 @@
-const $ = selector => document.querySelector(selector);
-const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let token = sessionStorage.getItem('hivemind-token') || '';
-let state = {projects: [], actor: null};
-let projectId = null, taskId = null, filter = 'all', query = '';
-const admin = () => state.actor?.id === 'admin';
-const currentProject = () => state.projects.find(p => p.id === projectId);
-const count = (tasks, status) => tasks.filter(t => t.status === status).length;
-const ready = t => t.status === 'queued' && !t.blocked_by.length;
-const taskStatus = t => t.status === 'queued' && t.blocked_by.length ? 'blocked' : t.status;
-const badge = status => `<span class="badge ${escape(status)}">${({queued:'Queued',active:'In progress',blocked:'Blocked',done:'Complete'})[status] || escape(status)}</span>`;
-const ago = timestamp => {
-  const seconds = Math.max(0, Date.now() / 1000 - timestamp);
-  return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds/60)}m ago` : seconds < 86400 ? `${Math.floor(seconds/3600)}h ago` : `${Math.floor(seconds/86400)}d ago`;
-};
-const safeLink = url => {try {const u = new URL(url); return u.protocol === 'https:' ? escape(u.href) : '#';} catch {return '#';}};
-
-async function api(path, body) {
-  const response = await fetch(path, {method:body === undefined ? 'GET':'POST', headers:{Authorization:`Bearer ${token}`, 'Content-Type':'application/json'}, ...(body === undefined ? {} : {body:JSON.stringify(body)})});
-  const result = await response.json();
-  if (!response.ok) throw Error(result.error || (Array.isArray(result.detail) ? result.detail.map(e=>`${e.loc.slice(1).join('.')}: ${e.msg}`).join('; ') : result.detail) || 'Request failed');
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fragment = new URLSearchParams(location.hash.slice(1));
+const token = fragment.get('session') || sessionStorage.getItem('hivemind-ui-session') || '';
+if (fragment.has('session')) {sessionStorage.setItem('hivemind-ui-session',token); history.replaceState(null,'',location.pathname);}
+let state={projects:[],agents:[]}, projectId=null, taskId=null, query='', requests=[], loading=false;
+const project=()=>state.projects.find(p=>p.id===projectId);
+const task=()=>project()?.tasks.find(t=>t.id===taskId);
+const ready=t=>t.status==='queued' && !(t.blocked_by || []).length;
+const status=t=>t.status==='queued' ? ready(t)?'ready':'blocked' : t.status;
+const worker=id=>state.agents.find(a=>a.id===id)?.name || id || 'Unclaimed';
+const badge=s=>`<span class="badge ${esc(s)}">${esc(s)}</span>`;
+const key=suffix=>`hivemind-ui:${state.repo}:${suffix}`;
+const saved=k=>{try{return JSON.parse(localStorage.getItem(k));}catch{return null;}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const link=url=>{try{const u=new URL(url);return u.protocol==='https:' && u.hostname==='github.com'?esc(u.href):'#';}catch{return '#';}};
+async function api(path,body) {
+  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'X-Hivemind-Session':token,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+  const result=await response.json();
+  if(!response.ok) throw Error(result.error || (Array.isArray(result.detail)?result.detail.map(e=>`${e.loc.slice(1).join('.')}: ${e.msg}`).join('; '):result.detail) || 'Request failed');
   return result;
 }
-function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('show'); setTimeout(() => $('#toast').classList.remove('show'), 4500); }
-async function load(silent = false) {
-  if (!token) {render(); return;}
-  try {
-    state = await api('/api/state');
-    $('#connection').textContent = 'Queue connected · updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    render();
-  } catch (error) {$('#connection').textContent = 'Connection unavailable'; if (!silent) toast(error.message);}
+function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),6000);}
+async function load(){
+  if(loading)return;loading=true;
+  try{const first=!state.repo;state=await api('/api/state');if(first)requests=saved(key('requests')) || [];$('#connection').textContent=`Live GitHub queue · updated ${new Date().toLocaleTimeString()}`;if(!$('#modal').open)render();}
+  catch(error){$('#connection').textContent=`Unable to refresh · ${error.message}`;toast(error.message);}finally{loading=false;}
 }
-function stat(label, value, note = '') {return `<div class="stat"><div class="stat-label">${label}</div><div class="stat-value">${value}${note ? `<small>${note}</small>` : ''}</div></div>`;}
-function render() {
-  $('#project-count').textContent = state.projects.length;
-  $('#identity-label').innerHTML = state.actor ? `${escape(state.actor.name)}<small>${admin() ? 'Workspace administrator':'Authorized agent'}</small>` : 'Connect your workspace<small>Administrator or agent token</small>';
-  $('#breadcrumb').innerHTML = `Workspace <span>/</span> Projects${currentProject() ? `<span>/</span>${escape(currentProject().name)}`:''}`;
-  if (currentProject()) renderProject(); else renderProjects();
+const stat=(label,value)=>`<div class="stat"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+function render(){
+  $('#project-count').textContent=state.projects.length;
+  $('#identity-label').textContent=state.actor?`GitHub: ${state.actor.login}`:'Local GitHub login';
+  $('#breadcrumb').innerHTML=`Workspace <span>/</span> Projects${project()?`<span>/</span>${esc(project().name)}`:''}`;
+  const all=state.projects.flatMap(p=>p.tasks);
+  const stats=`<div class="stats">${stat('In progress',all.filter(t=>t.status==='active').length)}${stat('Ready to work',all.filter(ready).length)}${stat('Blocked',all.filter(t=>status(t)==='blocked').length)}${stat('Completed',all.filter(t=>t.status==='done').length)}</div>`;
+  $('#main').innerHTML=project()?projectPage(stats):`<div class="page-heading"><div><div class="eyebrow">The work, in motion</div><h1>Projects</h1><p class="description">Your repositories, with a clear next step for every agent.</p></div></div>${stats}<div class="cards">${state.projects.map(p=>`<button class="project-card" data-project="${esc(p.id)}"><div class="card-top"><span class="repo-icon">⌘</span>${badge(p.tasks.some(t=>t.status==='active')?'active':'ready')}</div><h3>${esc(p.name)}</h3><div class="repo-name">${esc(p.repo)}</div><p class="card-description">${esc(p.description)}</p><div class="progress-label"><strong>${p.tasks.filter(t=>t.status==='done').length} of ${p.tasks.length} complete</strong></div><progress class="progress" max="${p.tasks.length || 1}" value="${p.tasks.filter(t=>t.status==='done').length}"></progress><div class="card-bottom"><span>${p.agents.filter(a=>!a.revoked).length} authorized workers</span><span>${p.tasks.filter(ready).length} ready ↗</span></div></button>`).join('') || '<div class="empty"><h2>No projects yet</h2><p>Initialize this repository with Hivemind first.</p></div>'}</div>`;
+  $('#main').insertAdjacentHTML('beforeend',requestsPanel());
+  $('#search')?.addEventListener('input',e=>{query=e.target.value;renderQueue();});renderQueue();
 }
-function renderProjects() {
-  const tasks = state.projects.flatMap(p => p.tasks);
-  $('#main').innerHTML = `<div class="page-heading"><div><div class="eyebrow">The work, in motion</div><h1>Projects</h1><p class="description">A shared queue for your repositories. A clear next step for every agent.</p></div>${admin() ? '<button class="button" data-action="new-project">＋ New project</button>' : !state.actor ? '<button class="button" data-action="auth">Connect workspace ↗</button>' : ''}</div>
-    <div class="stats">${stat('Repositories',state.projects.length,'governed projects')}${stat('In progress',count(tasks,'active'),'claimed by agents')}${stat('Ready to work',tasks.filter(ready).length,'dependencies cleared')}${stat('Completed',count(tasks,'done'),'GitHub evidence verified')}</div>
-    <div class="toolbar"><div class="tabs"><button class="tab ${filter==='all'?'active':''}" data-filter="all">All projects <span>${state.projects.length}</span></button><button class="tab ${filter==='active'?'active':''}" data-filter="active">In progress</button><button class="tab ${filter==='done'?'active':''}" data-filter="done">Completed</button></div><input class="search" id="search" type="search" aria-label="Search projects" placeholder="Search repositories…" value="${escape(query)}"></div><div class="cards" id="cards"></div>`;
-  renderCards();
-  $('#search').addEventListener('input', e => {query = e.target.value;renderCards();});
+function projectPage(stats){
+  const p=project();if(!p.tasks.some(t=>t.id===taskId))taskId=p.tasks[0]?.id;
+  return `<button class="back" data-action="home">← All projects</button><div class="page-heading"><div><div class="eyebrow">Repository workspace · queue revision ${p.revision}</div><h1>${esc(p.name)}</h1><a class="repo-name external" href="https://github.com/${esc(p.repo)}" target="_blank" rel="noopener">${esc(p.repo)} ↗</a></div><div class="row-actions"><button class="button secondary" data-action="reorder">Reorder queue</button><button class="button" data-action="add">＋ New task</button></div></div>${stats}<div class="toolbar"><p class="help">Edits use your GitHub identity. The broker validates authorization and revisions.</p><input class="search" id="search" type="search" aria-label="Search tasks" placeholder="Search tasks…" value="${esc(query)}"></div><div class="project-layout"><div class="panel"><div class="panel-heading"><h2>Work queue <span class="badge">${p.tasks.length}</span></h2><span class="help">Priority first, then queue order</span></div><div id="queue"></div></div><div><div class="panel detail" id="task-detail"></div><div class="panel detail agent-list"><h2>Activity</h2>${(p.events || []).slice(0,8).map(e=>`<div class="event"><div>${esc(e.action.replaceAll('_',' '))}<small>${esc(worker(e.actor))} · ${new Date(e.created*1000).toLocaleString()}</small></div></div>`).join('') || '<p class="help">No activity yet.</p>'}</div></div></div>`;
 }
-function renderCards() {
-  const projects = state.projects.filter(p => `${p.name} ${p.repo}`.toLowerCase().includes(query.toLowerCase()) && (filter === 'all' || filter === 'active' && p.tasks.some(t=>t.status === 'active') || filter === 'done' && p.tasks.length && p.tasks.every(t=>t.status === 'done')));
-  $('#cards').innerHTML = projects.map(p => {
-    const done = count(p.tasks,'done'), active = count(p.tasks,'active'), agents = p.agents.filter(a=>!a.revoked), progress = p.tasks.length ? Math.round(done/p.tasks.length*100) : 0;
-    return `<button class="project-card" data-project="${p.id}"><div class="card-top"><span class="repo-icon">⌘</span>${badge(progress === 100 ? 'done' : active ? 'active':'queued')}</div><h3>${escape(p.name)}</h3><div class="repo-name">↳ ${escape(p.repo)}</div><p class="card-description">${escape(p.description || 'A repository, a queue, and a shared direction.')}</p><div class="progress-label"><strong>${done} of ${p.tasks.length} tasks complete</strong><span>${progress}%</span></div><progress class="progress" max="100" value="${progress}" aria-label="Project completion">${progress}%</progress><div class="card-bottom"><span class="agents-stack">${agents.slice(0,3).map(a=>`<span class="mini-avatar">${escape(a.name.slice(0,1).toUpperCase())}</span>`).join('')}${agents.length} authorized ${agents.length === 1 ? 'agent':'agents'}</span><span>${p.tasks.filter(ready).length} ready <span>↗</span></span></div></button>`;
-  }).join('') || `<div class="empty"><div class="empty-icon">▦</div><h2>${state.projects.length ? 'No matching projects' : 'Your next project starts here'}</h2><p>${state.projects.length ? 'Try another search or filter.' : 'Connect a GitHub repository, define the work, and authorize your agents.'}</p>${admin() ? '<button class="button" data-action="new-project">＋ Add a repository</button>' : !state.actor ? '<button class="button" data-action="auth">Connect workspace</button>' : ''}</div>`;
+function renderQueue(){
+  const p=project();if(!p)return;
+  $('#queue').innerHTML=p.tasks.filter(t=>`${t.title} ${t.id}`.toLowerCase().includes(query.toLowerCase())).map(t=>`<button class="task-row ${taskId===t.id?'selected':''}" data-task="${esc(t.id)}"><div class="task-row-top"><strong>${t.parent?'↳ ':''}${esc(t.title)}</strong>${badge(status(t))}</div><div class="task-meta"><span class="mono">${esc(t.id)}</span><span>P${t.priority}</span><span>${t.dependencies.length} dependencies</span><span>${esc(worker(t.agent))}</span></div></button>`).join('') || '<div class="empty"><h2>No matching tasks</h2><p>Add a task or change your search.</p></div>';
+  $('#task-detail').innerHTML=taskDetail(p,task());
 }
-function renderProject() {
-  const p = currentProject(), tasks = p.tasks;
-  if (!taskId || !tasks.some(t=>t.id === taskId)) taskId = tasks[0]?.id;
-  const t = tasks.find(t=>t.id === taskId);
-  $('#main').innerHTML = `<button class="back" data-action="home">← All projects</button><div class="page-heading"><div><div class="eyebrow">Repository workspace</div><h1>${escape(p.name)}</h1><a class="repo-name external" href="https://github.com/${escape(p.repo)}" target="_blank" rel="noopener">${escape(p.repo)} ↗</a></div><div class="row-actions">${admin() ? '<button class="button secondary" data-action="agent">＋ Authorize agent</button>' : '<button class="button secondary" data-action="claim">Claim next task</button>'}<button class="button" data-action="new-task">＋ New task</button></div></div>
-    <div class="stats">${stat('Total tasks',tasks.length)}${stat('In progress',count(tasks,'active'))}${stat('Ready to work',tasks.filter(ready).length)}${stat('Completed',count(tasks,'done'))}</div>
-    <div class="setup-bar"><div><strong>Shared context, inside the repository.</strong><p>Install the agent workflow in AGENTS.md. Commit handoff notes to .hivemind/hints/.</p></div><button class="button secondary" data-action="instructions">Agent setup ↗</button></div>
-    <div class="project-layout"><div><div class="panel"><div class="panel-heading"><h2>Work queue <span class="badge">${tasks.length}</span></h2><span class="help">Priority → oldest first</span></div>${tasks.map(t=>`<button class="task-row ${t.id===taskId?'selected':''}" data-task="${t.id}"><div class="task-row-top"><strong>${t.parent ? '↳ ' : ''}${escape(t.title)}</strong>${badge(taskStatus(t))}</div><div class="task-meta"><span class="priority">${['','↑ High','— Normal','↓ Low'][t.priority]}</span><span>${t.dependencies.length} dependencies</span><span>${tasks.filter(x=>x.parent===t.id).length} subtasks</span>${t.agent?`<span>${escape(p.agents.find(a=>a.id===t.agent)?.name || 'Agent')}</span>`:''}</div></button>`).join('') || '<div class="empty"><h2>No tasks yet</h2><p>Add a task with clear acceptance criteria.</p><button class="button" data-action="new-task">＋ Create first task</button></div>'}</div>
-    <div class="panel activity"><div class="panel-heading"><h2>Activity</h2><span class="help">Last 100 events</span></div>${p.events.slice(0,12).map(e=>`<div class="event"><span class="pulse"></span><div>${escape(e.action.replaceAll('_',' '))}${e.task ? ` · ${escape(tasks.find(t=>t.id===e.task)?.title || e.task)}`:''}<small>${escape(e.actor === 'admin' ? 'Human administrator' : e.actor === 'system' ? 'Hivemind' : p.agents.find(a=>a.id===e.actor)?.name || e.actor)} · ${ago(e.created)}</small></div></div>`).join('')}</div></div>
-    <div><div class="panel detail">${t ? taskDetail(p,t) : '<div class="empty-icon">◎</div><h2>The full picture</h2><p class="help">Select a task to inspect its criteria, dependencies, subtasks, and proof.</p>'}</div><div class="panel detail agent-list"><h2>Project settings</h2><div class="detail-label">Required GitHub checks</div>${p.required_checks.map(c=>`<div class="check">✓ ${escape(c)}</div>`).join('')}<p class="help">Tasks complete automatically once these checks pass on the submitted PR head. All reported checks must also pass.</p><div class="detail-label">Authorized agents</div>${p.agents.map(a=>`<div class="agent-row"><span>${escape(a.name)} ${a.revoked?'<small>· revoked</small>':''}</span>${admin() && !a.revoked ? `<button data-revoke="${a.id}">Revoke access</button>`:''}</div>`).join('') || '<p class="help">Authorize an agent to start claiming work.</p>'}</div></div></div>`;
+function taskDetail(p,t){
+  if(!t)return '<h2>Select a task</h2><p class="help">Inspect criteria, dependencies and completion evidence.</p>';
+  const related=id=>{const x=p.tasks.find(v=>v.id===id);return `<button class="dependency" data-task="${esc(id)}">${esc(x?.title || id)} ${x?badge(status(x)):''}</button>`;};
+  return `${badge(status(t))}<h2>${esc(t.title)}</h2><div class="mono">${esc(t.id)} · revision ${t.revision}</div><div class="row-actions"><button class="button secondary" data-action="edit">Edit task</button><button class="button secondary" data-action="subtask">＋ Subtask</button></div><div class="detail-label">Acceptance criteria</div><p class="prose">${esc(t.criteria)}</p>${t.parent?`<div class="detail-label">Parent</div>${related(t.parent)}`:''}<div class="detail-label">Dependencies</div>${t.dependencies.map(related).join('') || '<p class="help">None · this task can run independently.</p>'}<div class="detail-label">Subtasks</div>${p.tasks.filter(x=>x.parent===t.id).map(x=>related(x.id)).join('') || '<p class="help">None.</p>'}${t.status==='active'?`<div class="detail-label">Claim</div><p class="help">${esc(worker(t.agent))} · expires ${new Date(t.lease*1000).toLocaleString()}</p>`:''}${t.proof?`<div class="detail-label">Verified evidence</div><a class="proof-link" href="https://github.com/${esc(p.repo)}/pull/${t.proof.pr}" target="_blank" rel="noopener">PR #${t.proof.pr} ↗</a><div class="mono">${esc(t.proof.commit)}</div><p class="prose">${esc(t.proof.summary)}</p>${t.proof.checks.map(c=>`<div class="check">✓ ${esc(c.name)}</div>`).join('')}`:''}<div class="detail-label">Notes</div>${t.notes.map(n=>`<p class="prose">${esc(n.text)}<small class="help"> · ${esc(worker(n.actor))}</small></p>`).join('') || '<p class="help">No notes yet.</p>'}<div class="row-actions"><button class="text-button" data-action="note">＋ Add note</button>${!['done','cancelled'].includes(t.status)?'<button class="text-button" data-action="cancel">Cancel task</button>':''}</div>`;
 }
-function taskDetail(p,t) {
-  const related = id => {const x = p.tasks.find(v=>v.id===id);return x ? `<button class="dependency" data-task="${x.id}">${x.status === 'done'?'✓':'○'} ${escape(x.title)} ${badge(taskStatus(x))}</button>` : '';};
-  const owned = t.agent === state.actor?.id && t.status === 'active';
-  return `${badge(taskStatus(t))}<h2>${escape(t.title)}</h2><div class="mono">${t.id}</div><div class="detail-label">Acceptance criteria</div><div class="prose">${escape(t.criteria)}</div>${t.feedback?`<div class="detail-label">Feedback</div><div class="prose">${escape(t.feedback)}</div>`:''}${t.parent?`<div class="detail-label">Parent task</div>${related(t.parent)}`:''}<div class="detail-label">Dependencies</div>${t.dependencies.map(related).join('') || '<p class="help">No dependencies.</p>'}<div class="detail-label">Subtasks</div>${p.tasks.filter(x=>x.parent===t.id).map(x=>related(x.id)).join('') || '<p class="help">No subtasks.</p>'}${t.status!=='done'?'<button class="text-button" data-action="subtask">＋ Add a subtask</button>':''}${t.status === 'active' ? `<div class="detail-label">Claim</div><p class="help">${escape(p.agents.find(a=>a.id===t.agent)?.name)} · expires ${new Date(t.lease*1000).toLocaleTimeString()}</p>${owned?'<div class="row-actions"><button class="button secondary" data-action="heartbeat">Renew claim</button><button class="button" data-action="submit">Submit proof</button></div>':''}`:''}${t.proof ? `<div class="detail-label">Verified completion evidence</div><a class="proof-link" href="${safeLink(t.proof.url)}" target="_blank" rel="noopener">Pull request #${t.proof.pr} ↗</a><div class="mono">${escape(t.proof.commit)}</div><p class="prose">${escape(t.proof.summary)}</p>${t.proof.checks.map(c=>`<div class="check">✓ ${c.url ? `<a href="${safeLink(c.url)}" target="_blank" rel="noopener">${escape(c.name)} ↗</a>` : escape(c.name)}</div>`).join('')}<p class="help">Verified ${new Date(t.proof.submitted_at*1000).toLocaleString()}</p>` : ''}`;
+function requestsPanel(){return `<div class="panel activity"><div class="panel-heading"><h2>Background commands & receipts</h2><span class="help">Pending changes are not applied yet</span></div>${requests.slice().reverse().slice(0,12).map(r=>`<div class="event"><div>${badge(r.status)} <strong>${esc(r.label)}</strong><p class="help">${esc(r.message || '')}</p>${r.request_id?`<div class="mono">${esc(r.request_id)}</div>`:''}${r.url?`<a class="text-button" href="${link(r.url)}" target="_blank" rel="noopener">Inspect on GitHub ↗</a>`:''}</div></div>`).join('') || '<div class="event">Your edits and their broker receipts appear here.</div>'}</div>`;}
+const actions=text=>`<div class="form-error" role="alert"></div><div class="form-actions"><button type="button" class="button secondary" data-action="close">Close</button><button type="submit" class="button">${text}</button></div>`;
+function modal(title,html,submit){
+  $('#modal-title').textContent=title;$('#modal-content').innerHTML=html;
+  const form=$('#modal-content form');if(form)form.addEventListener('submit',async e=>{e.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;try{await submit(form);}catch(error){$('.form-error').textContent=error.message;}finally{button.disabled=false;}});
+  $('#modal').showModal();
 }
-function modal(title, html, onSubmit) {
-  $('#modal-title').textContent = title;
-  $('#modal-content').innerHTML = html;
-  const form = $('#modal-content form');
-  if (form && onSubmit) form.addEventListener('submit', async event => {
-    event.preventDefault();
-    const button = form.querySelector('[type=submit]');
-    button.disabled = true;
-    $('.form-error').textContent = '';
-    try {await onSubmit(Object.fromEntries(new FormData(form)), form);} catch (error) {$('.form-error').textContent = error.message;} finally {button.disabled = false;}
+async function run(action,args,label,draftKey=null){
+  const id=crypto.randomUUID().replaceAll('-','');const r={id,label,status:'running',draftKey,draftSnapshot:draftKey?saved(draftKey):null};requests.push(r);save(key('requests'),requests);
+  try{await api('/api/commands',{id,project:project()?.id || state.projects[0].id,action,args});}
+  catch(error){r.status='unknown';r.message=`${error.message}. Inspect GitHub Issues before retrying; draft retained.`;save(key('requests'),requests);throw error;}
+  $('#modal').close();render();toast('Command started. Waiting for broker validation.');await pollRequests();
+}
+function taskModal(edit=false,parent=''){
+  const p=project(),t=edit?task():null,k=key(`draft:${p.id}:${t?.id || 'new'}`);
+  const draft=saved(k) || {title:t?.title || '',criteria:t?.criteria || '',priority:t?.priority || 2,parent:t?.parent || parent,dependencies:t?.dependencies || [],expected_revision:t?.revision,release_claim:false};
+  const options=(chosen,multi)=>p.tasks.filter(x=>x.id!==t?.id).map(x=>`<option value="${esc(x.id)}" ${(multi?chosen.includes(x.id):chosen===x.id)?'selected':''}>${esc(x.title)}</option>`).join('');
+  const read=form=>({...Object.fromEntries(new FormData(form)),priority:Number(form.elements.priority.value),dependencies:Array.from(form.elements.dependencies.selectedOptions).map(o=>o.value),expected_revision:draft.expected_revision,release_claim:!!form.elements.release_claim?.checked});
+  modal(edit?'Edit task':'Add a task',`<form><p class="help">${edit?`Draft bound to task revision ${draft.expected_revision}. Material edits invalidate existing completion evidence.`:'Describe a concrete outcome and the evidence required.'} Drafts stay on this computer until accepted or discarded.</p><label for="title">Title</label><input id="title" name="title" required maxlength="200" value="${esc(draft.title)}"><label for="criteria">Acceptance criteria</label><textarea id="criteria" name="criteria" required maxlength="10000">${esc(draft.criteria)}</textarea><label for="priority">Priority</label><select id="priority" name="priority">${[1,2,3].map(n=>`<option value="${n}" ${Number(draft.priority)===n?'selected':''}>${['','1 · High','2 · Normal','3 · Low'][n]}</option>`).join('')}</select><label for="parent">Parent task</label><select id="parent" name="parent"><option value="">No parent</option>${options(draft.parent,false)}</select><label for="dependencies">Dependencies</label><select id="dependencies" name="dependencies" multiple>${options(draft.dependencies,true)}</select><p class="help">Use Command / Control to select multiple tasks.</p>${t?`<label class="checkbox-label"><input type="checkbox" name="release_claim" ${draft.release_claim?'checked':''}> Release any active claim for a material edit</label><p class="help">Changing title, criteria, parent or dependencies of active work requires releasing its claim. Priority changes alone preserve it.</p>`:''}<button type="button" class="text-button" id="discard-draft">Discard draft and reload latest values</button>${actions(edit?'Submit edit':'Add to queue')}</form>`,async form=>{
+    const data=read(form);save(k,data);const args={title:data.title,criteria:data.criteria,priority:data.priority,parent:data.parent || null,dependencies:data.dependencies};
+    if(t)Object.assign(args,{task:t.id,expected_revision:data.expected_revision,release_claim:data.release_claim});
+    await run(t?'edit':'add',args,data.title,k);
   });
-  if (!$('#modal').open) $('#modal').showModal();
+  const form=$('#modal-content form');form.addEventListener('input',()=>save(k,read(form)));form.addEventListener('change',()=>save(k,read(form)));
+  $('#discard-draft').addEventListener('click',async()=>{localStorage.removeItem(k);$('#modal').close();await load();taskModal(edit,parent);});
 }
-const actions = label => `<div class="form-error" role="alert"></div><div class="form-actions"><button type="button" class="button secondary" data-action="close">Cancel</button><button type="submit" class="button">${label}</button></div>`;
-function authModal() {
-  modal('Connect your workspace', `<form><p class="help">For local development, enter the token stored in <code>.hivemind-data/admin-token</code>, or your authorized agent token. It is kept in this browser tab only.</p><label for="token">Access token</label><input id="token" name="token" type="password" required autocomplete="off">${actions('Connect')}</form>${token?'<button class="text-button" data-action="logout">Disconnect this session</button>':''}`, async data => {
-    const prior = token; token = data.token.trim();
-    try {state = await api('/api/state');} catch (error) {token = prior;throw error;}
-    sessionStorage.setItem('hivemind-token',token);$('#modal').close();await load();
-  });
+function reorderModal(){
+  const p=project(),draftKey=key(`draft:${p.id}:order`),draft=saved(draftKey),revision=draft?.expected_revision || p.revision,ids=draft?.tasks || p.tasks.map(t=>t.id);
+  modal('Prioritize the queue',`<form><p class="help">Queue revision ${revision}. Priority levels still apply; this orders tasks within a level. Active claims are preserved.</p><div id="order-list"></div><button type="button" class="text-button" id="discard-order">Discard draft and reload latest order</button>${actions('Submit order')}</form>`,async()=>{save(draftKey,{tasks:ids,expected_revision:revision});await run('prioritize',{tasks:ids,expected_revision:revision},'Reorder queue',draftKey);});
+  const draw=()=>{$('#order-list').innerHTML=ids.map((id,i)=>`<div class="order-row"><span>${esc(p.tasks.find(t=>t.id===id)?.title || id)}</span><button type="button" class="icon-button" aria-label="Move task up" data-index="${i}" data-direction="-1" ${i===0?'disabled':''}>↑</button><button type="button" class="icon-button" aria-label="Move task down" data-index="${i}" data-direction="1" ${i===ids.length-1?'disabled':''}>↓</button></div>`).join('');};
+  $('#order-list').addEventListener('click',e=>{const b=e.target.closest('[data-direction]');if(!b)return;const i=Number(b.dataset.index),j=i+Number(b.dataset.direction);if(j>=0 && j<ids.length){[ids[i],ids[j]]=[ids[j],ids[i]];save(draftKey,{tasks:ids,expected_revision:revision});draw();}});draw();$('#discard-order').addEventListener('click',async()=>{localStorage.removeItem(draftKey);$('#modal').close();await load();reorderModal();});
 }
-function projectModal() {
-  modal('Create a project', `<form><p class="help">Every project governs one GitHub repository. Required check names must match your CI configuration exactly.</p><label for="name">Project name</label><input id="name" name="name" placeholder="e.g. Local zeta functions" maxlength="120" required><label for="repo">GitHub repository</label><input id="repo" name="repo" placeholder="owner/repository" required><label for="description">Project goal</label><textarea id="description" name="description" placeholder="What are we working toward?"></textarea><label for="required_checks">Required GitHub checks · one per line</label><textarea id="required_checks" name="required_checks" placeholder="build&#10;test" required></textarea>${actions('Create project')}</form>`, async data => {
-    const result = await api('/api/projects', {...data, required_checks:data.required_checks.split('\n').map(s=>s.trim()).filter(Boolean)});
-    projectId = result.id;taskId = null;$('#modal').close();await load();toast('Repository added. Create a task to get started.');
-  });
+async function pollRequests(){
+  if(!state.repo)return;let changed=false,refresh=false;
+  for(const r of requests.filter(x=>['running','pending'].includes(x.status))){
+    try{const result=r.request_id?await api(`/api/requests/${r.request_id}`):await api(`/api/jobs/${r.id}`);if(result.status==='running')continue;
+      if(result.status==='failed'){r.status='failed';r.message=`${result.error}. Draft retained. Inspect GitHub before retrying.`;}
+      else{const receipt=result.status==='finished'?result.result:result;r.status=receipt.status==='dispatched'?'accepted':receipt.status || 'accepted';r.request_id=receipt.request_id || r.request_id;r.url=receipt.url || r.url;r.message=receipt.message || (r.status==='pending'?'Waiting for broker receipt.':receipt.status==='dispatched'?'Broker run dispatched; inspect its result on GitHub.':'Broker accepted the change.');if(r.status==='accepted'){if(r.draftKey && JSON.stringify(saved(r.draftKey))===JSON.stringify(r.draftSnapshot))localStorage.removeItem(r.draftKey);refresh=true;}}
+      changed=true;
+    }catch(error){r.message=error.message;if(error.message.includes('Job is not in this UI session')){r.status='unknown';r.message='UI session restarted. Inspect GitHub Issues before retrying; draft retained.';}changed=true;}
+  }
+  if(changed){save(key('requests'),requests);if(!$('#modal').open)render();}if(refresh)await load();
 }
-function taskModal(parent = '') {
-  const p = currentProject();
-  modal(parent?'Add a subtask':'Add a task', `<form><label for="title">Task title</label><input id="title" name="title" required maxlength="200" placeholder="A specific, actionable outcome"><label for="criteria">Acceptance criteria</label><textarea id="criteria" name="criteria" required placeholder="What evidence will demonstrate that this work is complete?"></textarea><label for="priority">Priority</label><select id="priority" name="priority"><option value="1">High</option><option value="2" selected>Normal</option><option value="3">Low</option></select><label for="parent">Parent task · optional</label><select id="parent" name="parent"><option value="">No parent · standalone task</option>${p.tasks.filter(t=>t.status!=='done').map(t=>`<option value="${t.id}" ${parent===t.id?'selected':''}>${escape(t.title)}</option>`).join('')}</select><label for="dependencies">Dependencies · optional</label><select id="dependencies" name="dependencies" multiple>${p.tasks.map(t=>`<option value="${t.id}">${escape(t.title)}</option>`).join('')}</select><p class="help">Hold Command or Control to select multiple tasks. A parent waits for all subtasks to finish.</p>${actions('Add to queue')}</form>`, async (data,form) => {
-    const result = await api(`/api/projects/${p.id}/tasks`, {...data, priority:Number(data.priority), dependencies:Array.from(form.elements.dependencies.selectedOptions).map(o=>o.value)});
-    taskId=result.id;$('#modal').close();await load();toast('Task added to the queue.');
-  });
-}
-function agentModal() {
-  const p = currentProject();
-  modal('Authorize an agent', `<form><p class="help">This credential can read, create, claim, and complete tasks only in ${escape(p.repo)}. It cannot change project settings or authorize other agents.</p><label for="agent-name">Agent name</label><input id="agent-name" name="name" required maxlength="120" placeholder="e.g. proof-worker-01">${actions('Create credential')}</form>`,async data => {
-    const a=await api(`/api/projects/${p.id}/agents`,data);
-    modal('Agent credential created', `<p class="help">Copy this token now. Only its hash is stored, so it cannot be retrieved again.</p><div class="code-block">${escape(a.token)}</div><p class="help">Configure the agent's environment:</p><div class="code-block">export HIVEMIND_URL=http://127.0.0.1:8765\nexport HIVEMIND_PROJECT=${p.id}\nexport HIVEMIND_TOKEN=&lt;token above&gt;\nhivemind claim</div><div class="form-actions"><button class="button" data-action="close">I've saved the token</button></div>`);await load();
-  });
-}
-async function instructionsModal() {
-  const p = currentProject(), data = await api(`/api/projects/${p.id}/instructions`);
-  modal('Repository agent setup', `<p class="help">From this hivemind checkout, configure an authorized token and run this command against a checkout whose origin matches <code>${escape(p.repo)}</code>.</p><div class="code-block">hivemind --project ${p.id} install --repo /path/to/checkout</div><p class="help">The installer preserves existing AGENTS.md content. Review and commit the update so every agent can read it in GitHub.</p><div class="detail-label">Installed AGENTS.md section</div><pre class="code-block">${escape(data.content)}</pre><div class="form-actions"><button class="button secondary" data-action="download-instructions">Download section</button><button class="button" data-action="close">Done</button></div>`);
-}
-function submitModal() {
-  const t=currentProject().tasks.find(t=>t.id===taskId);
-  modal('Submit completion evidence', `<form><p class="help">The hivemind verifies your pull request and required checks with GitHub. Passing verification marks this task done immediately.</p><label for="commit">Full commit SHA</label><input id="commit" name="commit" pattern="[0-9a-fA-F]{40}" required placeholder="40-character PR head commit"><label for="pr">Pull request number</label><input id="pr" name="pr" type="number" min="1" required><label for="summary">How did you meet the acceptance criteria?</label><textarea id="summary" name="summary" required></textarea>${actions('Verify & complete')}</form>`,async data=>{await api(`/api/tasks/${t.id}/submit`,{...data,pr:Number(data.pr)});$('#modal').close();await load();toast('GitHub checks verified. Task complete.');});
-}
-document.addEventListener('click',async e=>{
-  const button=e.target.closest('button');if(!button)return;
-  try {
-    if(button.dataset.project){projectId=button.dataset.project;taskId=null;render();return;}
-    if(button.dataset.task){taskId=button.dataset.task;renderProject();return;}
-    if(button.dataset.filter){filter=button.dataset.filter;renderProjects();return;}
-    if(button.dataset.revoke){const id=button.dataset.revoke;modal('Revoke agent access',`<p class="help">This immediately disables the credential and returns the agent's active claims to the queue.</p><form>${actions('Revoke access')}</form>`,async()=>{await api(`/api/projects/${projectId}/agents/${id}/revoke`,{});$('#modal').close();await load();});return;}
-    const action=button.dataset.action;
-    if(action==='home'){projectId=null;taskId=null;render();}
-    else if(action==='auth')authModal();
-    else if(action==='close')$('#modal').close();
-    else if(action==='logout'){token='';sessionStorage.removeItem('hivemind-token');state={projects:[],actor:null};projectId=null;$('#modal').close();$('#connection').textContent='Connect to load your queue';render();}
-    else if(action==='new-project')projectModal();
-    else if(action==='new-task')taskModal();
-    else if(action==='subtask')taskModal(taskId);
-    else if(action==='agent')agentModal();
-    else if(action==='instructions')await instructionsModal();
-    else if(action==='claim'){const result=await api(`/api/projects/${projectId}/claim`,{});if(result.task)taskId=result.task.id;await load();toast(result.task?'Task claimed for 30 minutes.':'No tasks are ready. Check dependencies or retry later.');}
-    else if(action==='heartbeat'){await api(`/api/tasks/${taskId}/heartbeat`,{});await load();toast('Claim renewed for 30 minutes.');}
-    else if(action==='submit')submitModal();
-    else if(action==='download-instructions'){const data=await api(`/api/projects/${projectId}/instructions`);const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([data.content],{type:'text/markdown'}));link.download='AGENTS.hivemind.md';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
+ document.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  try{if(b.dataset.project){projectId=b.dataset.project;taskId=null;render();return;}if(b.dataset.task){taskId=b.dataset.task;renderQueue();return;}
+    const a=b.dataset.action;
+    if(a==='home'){projectId=null;render();}else if(a==='close')$('#modal').close();else if(a==='add')taskModal();else if(a==='edit')taskModal(true);else if(a==='subtask')taskModal(false,taskId);else if(a==='reorder')reorderModal();
+    else if(a==='note'){const t=task();modal('Add a note',`<form><label for="note">Handoff or question</label><textarea id="note" name="text" required maxlength="10000"></textarea>${actions('Submit note')}</form>`,form=>run('note',{task:t.id,text:form.elements.text.value},`Note: ${t.title}`));}
+    else if(a==='cancel'){const t=task();modal('Cancel task',`<form><p class="prose">Cancel ${esc(t.title)} at revision ${t.revision}? Its history stays in GitHub.</p>${actions('Cancel task')}</form>`,()=>run('cancel',{task:t.id,expected_revision:t.revision},`Cancel: ${t.title}`));}
+    else if(a==='kick')await run('kick',{},'Kick broker');
   }catch(error){toast(error.message);}
 });
-$('#home-nav').addEventListener('click',()=>{projectId=null;taskId=null;render();});
-$('.brand').addEventListener('click',()=>{projectId=null;taskId=null;render();});
-$('#auth-button').addEventListener('click',authModal);
-$('#refresh').addEventListener('click',()=>load());
-$('#close-modal').addEventListener('click',()=>$('#modal').close());
-setInterval(()=>{if(token&&!$('#modal').open&&!$('#search')?.matches(':focus'))load(true);},15000);
-render();load();
+$('#home-nav').addEventListener('click',()=>{projectId=null;render();});$('.brand').addEventListener('click',()=>{projectId=null;render();});$('#refresh').addEventListener('click',load);$('#close-modal').addEventListener('click',()=>$('#modal').close());
+setInterval(()=>{if(!$('#modal').open)load();},60000);
+let polling=false;setInterval(async()=>{if(polling)return;polling=true;try{await pollRequests();}finally{polling=false;}},15000);
+$('#main').innerHTML='<div class="empty"><h2>Connecting to your GitHub queue…</h2><p>Using the GitHub login from your terminal.</p></div>';load().then(pollRequests);

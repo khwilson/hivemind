@@ -97,9 +97,12 @@ repositories; GitHub Free is insufficient for this protected private setup.
 See GitHub's [ruleset availability](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
 and [environment availability](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
 
-The GitHub-backed viewer is still planned. It must fetch private queue state
-using each viewer's authorized credential, rather than bundle that state or a
-credential into public Pages assets. A private source repository does not by
+The local `hivemind ui` viewer reads private state using the terminal's authorized
+GitHub credential and runs unsigned human edits through the CLI. Those edits
+require a configured maintainer identity; the UI never inherits a worker's
+signing key. The static Pages adapter is still planned and must fetch private
+state using each viewer's authorized credential, rather than bundle that state
+or a credential into public Pages assets. A private source repository does not by
 itself make a Pages website private. Private broker operation must be verified
 in a live smoke test before declaring a deployment ready.
 

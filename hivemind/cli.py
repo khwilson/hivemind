@@ -333,6 +333,28 @@ def revoke(ctx: typer.Context, agent: str) -> None:
 
 
 @app.command()
+def ui(
+    ctx: typer.Context,
+    repo: Annotated[str | None, typer.Option(help="Target GitHub repository.")] = None,
+    port: Annotated[
+        int, typer.Option(min=0, max=65535, help="Local port; 0 picks a free port.")
+    ] = 8765,
+    browser: Annotated[bool, typer.Option("--browser/--no-browser")] = True,
+) -> None:
+    """Open a local queue viewer and human editor using your GitHub login."""
+    from .ui import serve
+
+    if repo is not None:
+        context(ctx).repo = repo
+    try:
+        client, _ = connection(ctx)
+        serve(context(ctx).path, client.hub, port, browser)
+    except (ValueError, OSError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+
+
+@app.command()
 def kick(ctx: typer.Context) -> None:
     """Request a broker run on the repository's current default branch."""
 

@@ -7,12 +7,12 @@
     <div class="workspace">WORKSPACE <span>LOCAL</span></div>
     <button class="nav selected" id="home-nav"><span>▦</span> Projects <b id="project-count">0</b></button>
     <div class="sidebar-note"><span class="pulse"></span> Built for continuous work<p>One repository.<br>Many agents. Shared context.</p></div>
-    <button class="identity" id="auth-button"><span class="avatar">H</span><span id="identity-label">Connect your workspace<small>Administrator or agent token</small></span><span>↗</span></button>
+    <div class="identity"><span class="avatar">H</span><span id="identity-label">Local GitHub login</span></div>
   </aside>
   <div class="shell">
-    <header><div id="breadcrumb">Workspace <span>/</span> Projects</div><div class="header-actions"><span class="local-label">LOCAL PROTOTYPE</span><button class="icon-button" id="refresh" aria-label="Refresh projects">↻</button></div></header>
+    <header><div id="breadcrumb">Workspace <span>/</span> Projects</div><div class="header-actions"><span class="local-label">GITHUB QUEUE · LOCAL VIEWER</span><button class="button secondary" data-action="kick">Kick broker</button><button class="icon-button" id="refresh" aria-label="Refresh projects">↻</button></div></header>
     <main id="main"></main>
-    <footer><span><span class="pulse"></span> <span id="connection">Connect to load your queue</span></span><span>GitHub is the source of evidence.</span></footer>
+    <footer><span><span class="pulse"></span> <span id="connection">Connecting to GitHub</span></span><span>GitHub is the source of truth.</span></footer>
   </div>
   <dialog id="modal"><div class="modal-heading"><h2 id="modal-title"></h2><button id="close-modal" class="icon-button" aria-label="Close dialog">×</button></div><div id="modal-content"></div></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
